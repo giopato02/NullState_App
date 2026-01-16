@@ -1,16 +1,59 @@
-# nullstate
+# 🌑☁️ NullState
 
-A new Flutter project.
+**Focus. Clarity. Deep Work.**
 
-## Getting Started
+NullState is a cross-platform mobile application designed to help users achieve a state of "Deep Work." It combines a custom-built focus timer with a persistent journaling system, allowing users to track their focus sessions and clear their mental clutter in one distraction-free interface.
 
-This project is a starting point for a Flutter application.
+---
 
-A few resources to get you started if this is your first Flutter project:
+## Features:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+### Focus Timer Engine
+* **Custom State Logic:** Built from scratch using `Timer.periodic` (no external timer packages) to handle complex states: Start, Pause, Resume, and Reset.
+* **Visual Feedback:** Features a "Draining Circle" animation that mathematically calculates progress in real-time.
+* **Smart Controls:**
+    * Slider input snaps to whole minutes (1-120 min).
+    * Controls dynamically hide/show based on the timer's active state.
+    * Persistence logic ensures the timer resumes correctly after pausing.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### Persistent Journal
+* **Offline-First Database:** Powered by **Hive** (NoSQL) for instant save/load operations with zero latency.
+* **Reactive UI:** Implemented `ValueListenableBuilder` to ensure the interface updates instantly when notes are added or deleted, without requiring full screen rebuilds.
+* **Modern UX:**
+    * "Glassmorphism" aesthetic with transparent grids.
+    * Responsive layout that adapts to screen size using `MediaQuery`.
+    * Modal Bottom Sheet for seamless data entry.
+
+---
+
+## Tech Stack
+
+* **Language:** Dart
+* **Framework:** Flutter
+* **Architecture:** MVC (Model-View-Controller)
+* **Database:** [Hive](https://docs.hivedb.dev/) (NoSQL Local Storage)
+* **State Management:** `setState` & `ValueListenableBuilder`
+
+---
+
+## Screenshots
+
+| Focus Timer | Journal Grid | Add Note |
+|:---:|:---:|:---:|
+| *(coming soon)* | *(coming soon)* | *(coming soon)* |
+
+---
+
+## How to Run (For now)
+
+If you want to run this project locally, follow these steps.
+
+### 1. Prerequisites
+Make sure you have the following installed:
+* [Flutter SDK](https://flutter.dev/docs/get-started/install)
+* VS Code or Android Studio
+
+### 2. Installation
+Clone the repository:
+```bash
+git clone [https://github.com/YOUR_USERNAME/null_state.git](https://github.com/YOUR_USERNAME/null_state.git)
