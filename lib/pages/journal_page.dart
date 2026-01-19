@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nullstate/models/note.dart';
-import 'package:hive_flutter/hive_flutter.dart'; 
-import 'package:nullstate/pages/note_editor_page.dart'; 
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:nullstate/pages/note_editor_page.dart';
 
 class JournalPage extends StatefulWidget {
   const JournalPage({super.key});
@@ -11,34 +11,75 @@ class JournalPage extends StatefulWidget {
 }
 
 class _JournalPageState extends State<JournalPage> {
-
   final _myBox = Hive.box<Note>('notes_box');
 
-  // Function to Create a BLANK note and open the editor
+  // --- SELECTION STATE ---
+  bool isSelectionMode = false;
+  Set<String> selectedIds = {}; // Stores the IDs of selected notes
+
+  // 1. Toggle Selection Mode ON/OFF
+  void _toggleSelectionMode(bool active) {
+    setState(() {
+      isSelectionMode = active;
+      if (!active) {
+        selectedIds.clear(); // Clear list when exiting mode
+      }
+    });
+  }
+
+  // 2. Toggle a single note's selection
+  void _toggleNoteSelection(String id) {
+    setState(() {
+      if (selectedIds.contains(id)) {
+        selectedIds.remove(id);
+        // If we deselect the last item, we exit mode
+        if (selectedIds.isEmpty) {
+          isSelectionMode = false;
+        }
+      } else {
+        selectedIds.add(id);
+      }
+    });
+  }
+
+  // 3. Select/Deselect All Logic
+  void _toggleSelectAll(List<Note> allNotes) {
+    setState(() {
+      if (selectedIds.length == allNotes.length) {
+        selectedIds.clear(); // Uncheck all
+      } else {
+        selectedIds = allNotes.map((e) => e.id).toSet(); // Select all
+      }
+    });
+  }
+
+  // 4. Batch Delete Function
+  void _deleteSelectedNotes() {
+    // Convert IDs to a list of Note objects to delete
+    final notesToDelete = _myBox.values
+        .where((note) => selectedIds.contains(note.id))
+        .toList();
+
+    for (var note in notesToDelete) {
+      note.delete();
+    }
+
+    _toggleSelectionMode(false); // Exit mode after deleting
+  }
+
+  // 5. Create Blank Note (Only when NOT in selection mode)
   void _createNewNote() {
     final newNote = Note(
       id: DateTime.now().toString(),
-      title: '', // Start empty
-      content: '', // Start empty
+      title: '',
+      content: '',
       date: DateTime.now(),
     );
-    
-    // Add it to Hive
     _myBox.add(newNote);
-
-    // Open the note-editor-page immediately
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => NoteEditorPage(note: newNote),
-      ),
+      MaterialPageRoute(builder: (context) => NoteEditorPage(note: newNote)),
     );
-  }
-
-  // Function to Delete a Note (For the long-press on card)
-  //Soon to be changed to Selection
-  void _deleteNote(Note note) {
-    note.delete();
   }
 
   @override
@@ -48,42 +89,71 @@ class _JournalPageState extends State<JournalPage> {
     return Scaffold(
       backgroundColor: Colors.transparent,
 
-      // Add Button
+      // FLOATING ACTION BUTTON (Transforms based on Mode)
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 115.0),
         child: FloatingActionButton(
-          onPressed: _createNewNote, // Calls the new logic
-          backgroundColor: Colors.green,
+          // If in selection mode, show Delete button. Otherwise, show Add button.
+          onPressed: isSelectionMode
+              ? () {
+                  // Show confirmation dialog before batch delete
+                  if (selectedIds.isNotEmpty) {
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: Text("Delete ${selectedIds.length} notes?"),
+                        content: const Text("This cannot be undone."),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text("Cancel"),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _deleteSelectedNotes();
+                            },
+                            child: const Text(
+                              "Delete",
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                }
+              : _createNewNote,
+          backgroundColor: isSelectionMode ? Colors.red : Colors.green,
           foregroundColor: Colors.white,
-          child: const Icon(Icons.add),
+          child: Icon(isSelectionMode ? Icons.delete : Icons.add),
         ),
       ),
 
-      // The Grid of Notes
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0), 
+          padding: const EdgeInsets.symmetric(horizontal: 20.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start, 
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(height: screenHeight * 0.15),
+              const SizedBox(height: 60),
 
-              const SizedBox(height: 60), 
-              Center(
-                child: const Text(
+              const Center(
+                child: Text(
                   "Journal",
                   style: TextStyle(
                     fontSize: 60,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
-                    height: 1.0, 
+                    height: 1.0,
                   ),
                 ),
               ),
 
               const SizedBox(height: 10),
 
-              Text(
+              const Text(
                 "Clear your mind. Dump your thoughts here to stay focused and productive.",
                 style: TextStyle(
                   fontSize: 16,
@@ -93,32 +163,72 @@ class _JournalPageState extends State<JournalPage> {
                 textAlign: TextAlign.center,
               ),
 
-              SizedBox(height: screenHeight * 0.12),
-
+              SizedBox(
+                height: screenHeight * 0.05,
+              ), // Slightly reduced to fit the new row
+              // LISTENER FOR GRID
               ValueListenableBuilder(
                 valueListenable: _myBox.listenable(),
                 builder: (context, Box<Note> box, _) {
                   List<Note> notes = box.values.toList().cast<Note>();
                   notes.sort((a, b) => b.date.compareTo(a.date));
-                
-                  return GridView.builder(
-                    padding: EdgeInsets.zero, 
-                    shrinkWrap: true, 
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: notes.length,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      childAspectRatio: 0.85,
-                    ),
-                    itemBuilder: (context, index) {
-                      return _buildNoteCard(notes[index]); 
-                    },
+
+                  // We must return a single widget (Column) that holds both parts
+                  return Column(
+                    children: [
+                      // The "Select All" Row 
+                      if (isSelectionMode)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            const Text(
+                              "Select All",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Checkbox(
+                              value:
+                                  selectedIds.length == notes.length &&
+                                  notes.isNotEmpty,
+                              activeColor: Colors.white,
+                              checkColor: Colors.blue,
+                              side: const BorderSide(
+                                color: Colors.white,
+                                width: 2,
+                              ),
+                              onChanged: (val) => _toggleSelectAll(notes),
+                            ),
+                          ],
+                        )
+                      else
+                        // Keeps the layout stable so things don't jump around
+                        const SizedBox(height: 48),
+
+                      // The Grid
+                      GridView.builder(
+                        padding: EdgeInsets.zero,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: notes.length,
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 16,
+                              mainAxisSpacing: 16,
+                              childAspectRatio: 0.85,
+                            ),
+                        itemBuilder: (context, index) {
+                          return _buildNoteCard(notes[index]);
+                        },
+                      ),
+                    ],
                   );
                 },
               ),
-              const SizedBox(height: 80), 
+              const SizedBox(height: 80),
             ],
           ),
         ),
@@ -127,73 +237,95 @@ class _JournalPageState extends State<JournalPage> {
   }
 
   Widget _buildNoteCard(Note note) {
+    // Check if this specific note is selected
+    bool isSelected = selectedIds.contains(note.id);
+
     return Material(
-      color: Colors.white.withValues(alpha: 0.9), 
-      borderRadius: BorderRadius.circular(20), 
-      elevation: 5, 
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20), 
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => NoteEditorPage(note: note),
+      color: Colors.white.withValues(alpha: 0.9),
+      borderRadius: BorderRadius.circular(20),
+      elevation: 5,
+      // Wrap in Stack to put the Selection Circle on top
+      child: Stack(
+        children: [
+          // The Card Content (InkWell)
+          Positioned.fill(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () {
+                if (isSelectionMode) {
+                  _toggleNoteSelection(note.id);
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => NoteEditorPage(note: note),
+                    ),
+                  );
+                }
+              },
+              onLongPress: () {
+                if (!isSelectionMode) {
+                  _toggleSelectionMode(true);
+                  _toggleNoteSelection(
+                    note.id,
+                  ); // Select the one we long-pressed
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Extra padding at top so title doesn't hit the selection circle
+                    if (isSelectionMode) const SizedBox(height: 20),
+
+                    Text(
+                      note.title.isNotEmpty ? note.title : "Untitled",
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "${note.date.day.toString().padLeft(2, '0')}/${note.date.month.toString().padLeft(2, '0')}/${note.date.year}",
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: Text(
+                        note.content,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.black54,
+                        ),
+                        maxLines: 4,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          );
-        },
-        onLongPress: () {
-          showDialog(
-            context: context, 
-            builder: (context) => AlertDialog(
-              title: const Text("Delete Note?"),
-              content: const Text("This cannot be undone."),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-                TextButton(
-                  onPressed: () {
-                    _deleteNote(note); 
-                    Navigator.pop(context);
-                  }, 
-                  child: const Text("Delete", style: TextStyle(color: Colors.red))
-                ),
-              ],
-            )
-          );
-        },
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: const BoxDecoration(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                note.title.isNotEmpty 
-                    ? note.title
-                    : "Untitled", 
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                "${note.date.day.toString().padLeft(2, '0')}/${note.date.month.toString().padLeft(2, '0')}/${note.date.year}",
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: Text(
-                  note.content,
-                  style: const TextStyle(fontSize: 14, color: Colors.black54),
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
           ),
-        ),
+
+          // The Selection Circle (Top Left Corner)
+          if (isSelectionMode)
+            Positioned(
+              top: 10,
+              left: 10,
+              child: IgnorePointer(
+                // Lets clicks pass through to the InkWell
+                child: Icon(
+                  isSelected ? Icons.check_circle : Icons.circle_outlined,
+                  color: isSelected ? Colors.blue : Colors.grey[400],
+                  size: 24,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
