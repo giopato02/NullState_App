@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nullstate/models/note.dart';
-import 'package:hive_flutter/hive_flutter.dart'; //hive
+import 'package:hive_flutter/hive_flutter.dart'; 
+import 'package:nullstate/pages/note_editor_page.dart'; 
 
 class JournalPage extends StatefulWidget {
   const JournalPage({super.key});
@@ -13,115 +14,35 @@ class _JournalPageState extends State<JournalPage> {
 
   final _myBox = Hive.box<Note>('notes_box');
 
-  List<Note> notes = [
-    Note(
-      id: '1',
-      title: 'Project Ideas',
-      content: 'Build a focus app using Flutter...',
-      date: DateTime.now(),
-    ),
-  ];
-
-  // Function to Add a Note
-  void _addNewNote(String title, String content) {
+  // Function to Create a BLANK note and open the editor
+  void _createNewNote() {
     final newNote = Note(
       id: DateTime.now().toString(),
-      title: title,
-      content: content,
+      title: '', // Start empty
+      content: '', // Start empty
       date: DateTime.now(),
     );
     
-    //saves directly to database
+    // Add it to Hive
     _myBox.add(newNote);
 
-  }
-
-    // Function to Delete a Note
-    void _deleteNote(Note note) {
-    note.delete();
-  }
-
-  // The small sheet that pops up to type
-  void _showNoteInput() {
-    String title = '';
-    String content = '';
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true, // Lets it go full height
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    // Open the note-editor-page immediately
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => NoteEditorPage(note: newNote),
       ),
-      builder: (context) {
-        return Padding(
-          // Pushes the sheet up when keyboard opens
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            left: 20,
-            right: 20,
-            top: 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min, // Wrap content
-            children: [
-              // Title Input
-              TextField(
-                decoration: const InputDecoration(
-                  hintText: "Title",
-                  border: InputBorder.none,
-                  hintStyle: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-                onChanged: (val) => title = val,
-              ),
-
-              // Content Input
-              TextField(
-                decoration: const InputDecoration(
-                  hintText: "Write your thoughts...",
-                  border: InputBorder.none,
-                ),
-                maxLines: 19, // box size
-                onChanged: (val) => content = val,
-              ),
-
-              const SizedBox(height: 20),
-
-              // Save Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.lightBlue,
-                    foregroundColor: Colors.white,
-                  ),
-                  onPressed: () {
-                    if (title.isNotEmpty || content.isNotEmpty) {
-                      _addNewNote(title, content);
-                      Navigator.pop(context); // Close the sheet
-                    }
-                  },
-                  child: const Text("Save Note"),
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
-        );
-      },
     );
+  }
+
+  // Function to Delete a Note (For the long-press on card)
+  //Soon to be changed to Selection
+  void _deleteNote(Note note) {
+    note.delete();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Get the screen height so we can calculate positions dynamically
     final double screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
@@ -131,7 +52,7 @@ class _JournalPageState extends State<JournalPage> {
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 115.0),
         child: FloatingActionButton(
-          onPressed: _showNoteInput,
+          onPressed: _createNewNote, // Calls the new logic
           backgroundColor: Colors.green,
           foregroundColor: Colors.white,
           child: const Icon(Icons.add),
@@ -141,15 +62,13 @@ class _JournalPageState extends State<JournalPage> {
       // The Grid of Notes
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0), // Side margins
+          padding: const EdgeInsets.symmetric(horizontal: 20.0), 
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start, // Aligns text to the left
+            crossAxisAlignment: CrossAxisAlignment.start, 
             children: [
               SizedBox(height: screenHeight * 0.15),
 
-              const SizedBox(height: 60), // Top spacing (Status bar area)
-              // The Title
+              const SizedBox(height: 60), 
               Center(
                 child: const Text(
                   "Journal",
@@ -157,14 +76,13 @@ class _JournalPageState extends State<JournalPage> {
                     fontSize: 60,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
-                    height: 1.0, // Tighter line height
+                    height: 1.0, 
                   ),
                 ),
               ),
 
               const SizedBox(height: 10),
 
-              // Description
               Text(
                 "Clear your mind. Dump your thoughts here to stay focused and productive.",
                 style: TextStyle(
@@ -177,33 +95,29 @@ class _JournalPageState extends State<JournalPage> {
 
               SizedBox(height: screenHeight * 0.12),
 
-            ValueListenableBuilder(
-              valueListenable: _myBox.listenable(),
-              builder: (context, Box<Note> box, _) {
-                List<Note> notes = box.values.toList().cast<Note>();
-                notes.sort((a, b) => b.date.compareTo(a.date));
-              
-              return GridView.builder(
-                padding: EdgeInsets.zero, // Remove default top padding
-                shrinkWrap:
-                    true, // Critical: Calculates height based on content
-                physics:
-                    // Disables internal scrolling
-                    const NeverScrollableScrollPhysics(),
-                itemCount: notes.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 0.85,
-                ),
-                itemBuilder: (context, index) {
-                  return _buildNoteCard(notes[index]); // use Note object
+              ValueListenableBuilder(
+                valueListenable: _myBox.listenable(),
+                builder: (context, Box<Note> box, _) {
+                  List<Note> notes = box.values.toList().cast<Note>();
+                  notes.sort((a, b) => b.date.compareTo(a.date));
+                
+                  return GridView.builder(
+                    padding: EdgeInsets.zero, 
+                    shrinkWrap: true, 
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: notes.length,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 0.85,
+                    ),
+                    itemBuilder: (context, index) {
+                      return _buildNoteCard(notes[index]); 
+                    },
+                  );
                 },
-              );
-            },
-          ),
-              // Bottom spacing so add icon doesn't cover last note
+              ),
               const SizedBox(height: 80), 
             ],
           ),
@@ -212,21 +126,22 @@ class _JournalPageState extends State<JournalPage> {
     );
   }
 
-  // Helper Widget for individual Note Cards
   Widget _buildNoteCard(Note note) {
     return Material(
-      color: Colors.white.withValues(alpha: 0.9), // Color moves here
-      borderRadius: BorderRadius.circular(20), // Shape moves here
-      elevation: 5, // adds shadow
+      color: Colors.white.withValues(alpha: 0.9), 
+      borderRadius: BorderRadius.circular(20), 
+      elevation: 5, 
       child: InkWell(
-        borderRadius: BorderRadius.circular(
-          20,
-        ), // Clips the splash to the corners
+        borderRadius: BorderRadius.circular(20), 
         onTap: () {
-          debugPrint("Open ${note.title}");
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => NoteEditorPage(note: note),
+            ),
+          );
         },
         onLongPress: () {
-          // use this later for deleting or for selecting
           showDialog(
             context: context, 
             builder: (context) => AlertDialog(
@@ -236,7 +151,7 @@ class _JournalPageState extends State<JournalPage> {
                 TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
                 TextButton(
                   onPressed: () {
-                    _deleteNote(note); // Call our delete helper
+                    _deleteNote(note); 
                     Navigator.pop(context);
                   }, 
                   child: const Text("Delete", style: TextStyle(color: Colors.red))
@@ -247,16 +162,14 @@ class _JournalPageState extends State<JournalPage> {
         },
         child: Container(
           padding: const EdgeInsets.all(16),
-          decoration: const BoxDecoration(
-            // remove color and borderRadius from here
-          ),
+          decoration: const BoxDecoration(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                note.title.isNotEmpty //default
+                note.title.isNotEmpty 
                     ? note.title
-                    : "Untitled", // fallback if title is empty
+                    : "Untitled", 
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -266,7 +179,6 @@ class _JournalPageState extends State<JournalPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                // 05/01/2026 format
                 "${note.date.day.toString().padLeft(2, '0')}/${note.date.month.toString().padLeft(2, '0')}/${note.date.year}",
                 style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               ),

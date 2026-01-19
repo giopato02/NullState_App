@@ -51,7 +51,8 @@ If you want to run this project locally, follow these steps.
 ### 1. Prerequisites
 Make sure you have the following installed:
 * [Flutter SDK](https://flutter.dev/docs/get-started/install)
-* VS Code or Android Studio
+* VS Code
+* Android Studio / Xcode (For IOS)
 
 ### 2. Installation
 Clone the repository:
