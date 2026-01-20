@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'dart:async';
 
 class FocusPage extends StatefulWidget {
@@ -9,7 +10,7 @@ class FocusPage extends StatefulWidget {
 }
 
 class _FocusPageState extends State<FocusPage> {
-// --Variables--
+// Variables
   double selectedMinutes = 25;
   bool isRunning = false;
 
@@ -17,7 +18,22 @@ class _FocusPageState extends State<FocusPage> {
   Timer? timer;
   int totalSeconds = 0;
 
-// --Functions for the Timer Logic--
+  @override
+  void initState() {
+    super.initState();
+    // Access the box opened in main.dart
+    final settingsBox = Hive.box('settings_box');
+    
+    // Get the saved value (Default: 25)
+    double savedDuration = settingsBox.get('focusDuration', defaultValue: 25.0);
+    
+    // Update the variable that controls the slider and text
+    setState(() {
+      selectedMinutes = savedDuration;
+    });
+  }
+
+// Functions for the Timer Logic
 void startTimer() {
     setState(() {
       isRunning = true;
@@ -33,7 +49,7 @@ void startTimer() {
           remainingSeconds--;
         } else {
           stopTimer(); 
-          // (Optional: play a sound here)
+          // (play a sound here later)
           }
         }
       );

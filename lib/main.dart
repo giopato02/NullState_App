@@ -6,7 +6,8 @@ import 'package:nullstate/models/note.dart';
 void main() async {
   await Hive.initFlutter();
   Hive.registerAdapter(NoteAdapter());
-  await Hive.openBox<Note>('notes_box');
+  await Hive.openBox<Note>('notes_box'); // for notes
+  await Hive.openBox('settings_box'); // for settings
   
   runApp(const NullStateApp());
 }
