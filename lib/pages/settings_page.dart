@@ -41,7 +41,7 @@ class _SettingsPageState extends State<SettingsPage> {
       debugPrint("Could not launch email: $e");
     }
   }
-// Function to show the info dialog
+// Function to show the info for Default Duration
   void _showDurationInfo() {
     showDialog(
       context: context,
@@ -74,6 +74,26 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     );
   }
+//Function to show info for Strict Mode
+void _showStrictModeInfo() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Strict Mode"),
+        content: const Text(
+          "This mode detects if you leave the app and resets your timer to keep you accountable.\n\n"
+          "❗️DISCLAIMER❗️: Do not shut the phone off during this mode, since the app detects it as a leave and automatically resets your timer."
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Got it"),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Function to open Browser
   Future<void> _launchSupportUrl() async {
     // Replace with your actual link (Ko-fi, Patreon, etc.)
@@ -155,10 +175,27 @@ class _SettingsPageState extends State<SettingsPage> {
 
           // Setting 2: Strict Mode
           SwitchListTile(
-            title: const Text("Strict Mode"),
+            title: Row(
+              children: [
+                const Text("Strict Mode"),
+                const SizedBox(width: 8),
+                InkWell(
+                  onTap: _showStrictModeInfo,
+                  borderRadius: BorderRadius.circular(20),
+                  child: const Padding(
+                    padding: EdgeInsets.all(4.0),
+                    child: Icon(
+                      Icons.info_outline, 
+                      size: 20, 
+                      color: Colors.grey,
+                    ),
+                  ),
+                ),
+              ],
+            ),
             subtitle: const Text("Keep me accountable"),
             secondary: const Icon(Icons.lock_outline),
-            activeThumbColor: Colors.blue, // 'activeColor' works better for iOS/Android consistency
+            activeThumbColor: Colors.blue, 
             value: _isStrictMode,
             onChanged: (val) {
               setState(() {

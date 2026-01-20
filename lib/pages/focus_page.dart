@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'dart:async';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 class FocusPage extends StatefulWidget {
   const FocusPage({super.key});
@@ -9,102 +10,187 @@ class FocusPage extends StatefulWidget {
   State<FocusPage> createState() => _FocusPageState();
 }
 
-class _FocusPageState extends State<FocusPage> {
-// Variables
+class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
+  // --Variables--
   double selectedMinutes = 25;
+  
+  // State Flags
   bool isRunning = false;
+  bool isPaused = false;
 
+  DateTime? _endTime; 
   int remainingSeconds = 0;
   Timer? timer;
   int totalSeconds = 0;
 
+  bool _wasStrictlyInterrupted = false;
+
   @override
   void initState() {
     super.initState();
-    // Access the box opened in main.dart
+    WidgetsBinding.instance.addObserver(this);
+
     final settingsBox = Hive.box('settings_box');
-    
-    // Get the saved value (Default: 25)
     double savedDuration = settingsBox.get('focusDuration', defaultValue: 25.0);
-    
-    // Update the variable that controls the slider and text
     setState(() {
       selectedMinutes = savedDuration;
     });
   }
 
-// Functions for the Timer Logic
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    WakelockPlus.disable();
+    timer?.cancel();
+    super.dispose();
+  }
+
+  // --Functions--
 void startTimer() {
+    final settingsBox = Hive.box('settings_box');
+    bool isStrict = settingsBox.get('isStrictMode', defaultValue: false);
+
     setState(() {
       isRunning = true;
-      // Convert minutes to seconds
-      remainingSeconds = (selectedMinutes * 60).toInt();
-      totalSeconds = remainingSeconds;
+      isPaused = false;
     });
 
-    // Start the Ticker (Run this code every 1 second)
-    timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        if (remainingSeconds > 0) {
-          remainingSeconds--;
-        } else {
-          stopTimer(); 
-          // (play a sound here later)
-          }
-        }
-      );
+    if (_endTime == null) {
+        totalSeconds = (selectedMinutes * 60).toInt();
+        remainingSeconds = totalSeconds;
+        _endTime = DateTime.now().add(Duration(seconds: totalSeconds));
+    } 
+    else {
+        _endTime = DateTime.now().add(Duration(seconds: remainingSeconds));
     }
-  );
-}
+
+    if (isStrict) {
+      WakelockPlus.enable();
+    }
+
+    timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+
+      setState(() {
+        final now = DateTime.now();
+        
+        // FIX OF BUG: Use ceil() to prevent the "2 second jump"
+        // Before this the timer used to decrement by 2 on the UI when started
+        // This was Because code takes a few milliseconds to run, 
+        // and the tick actually happens at 1.01 seconds.
+        // So 30.00 - 1.01 = 28.99 seconds left. This gets rounded down to 28
+        remainingSeconds = (_endTime!.difference(now).inMilliseconds / 1000).ceil();
+
+        if (remainingSeconds <= 0) {
+          stopTimer(); 
+        }
+      });
+    });
+  }
+
+  void pauseTimer() {
+    timer?.cancel();
+    WakelockPlus.disable(); // Save battery while paused
+
+    setState(() {
+      isRunning = false;
+      isPaused = true;
+      // do NOT clear _endTime here, because we need it to know we are "mid-session"
+      // But we DO need to make sure remainingSeconds is accurate for the UI
+    });
+  }
 
   void stopTimer() {
     timer?.cancel();
+    WakelockPlus.disable();
+    
     setState(() {
       isRunning = false;
-      // don't reset 'selectedMinutes' so the user remembers their last choice
+      isPaused = false;
+      remainingSeconds = 0;
+      _endTime = null; // Nuke _endTime so next start is fresh
+    });
+  }
+
+  // LIFECYCLE OBSERVER
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    final settingsBox = Hive.box('settings_box');
+    bool isStrict = settingsBox.get('isStrictMode', defaultValue: false);
+
+    if (state == AppLifecycleState.paused) {
+      // Punish if Strict Mode is ON and session is actively RUNNING
+      // (don't punish if they are already paused)
+      if (isStrict && isRunning) {
+        stopTimer();
+        _wasStrictlyInterrupted = true;
+      }
     }
-  );
-}
-  
-  // Helper to format "65 seconds" into "01:05"
+
+    if (state == AppLifecycleState.resumed) {
+      if (_wasStrictlyInterrupted) {
+        _wasStrictlyInterrupted = false;
+        showDialog(
+          context: context, 
+          builder: (context) => AlertDialog(
+            title: const Text("Focus Broken 😔"),
+            content: const Text("Strict Mode is active. You left the app, so the timer was reset."),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context), 
+                child: const Text("I understand")
+              )
+            ],
+          )
+        );
+      }
+      // If we come back and it's running, update UI
+      else if (isRunning && _endTime != null) {
+        setState(() {
+           remainingSeconds = _endTime!.difference(DateTime.now()).inSeconds;
+        });
+      }
+    }
+  }
+
   String getFormattedTime() {
-    // If not running, just show the slider value
-    if (!isRunning) {
+    // If stopped, show slider value
+    if (!isRunning && !isPaused) {
       return "${selectedMinutes.toInt()}:00";
     }
     
-    // If running, do the math
-    int minutes = remainingSeconds ~/ 60; // Integer division
-    int seconds = remainingSeconds % 60;  // Remainder
-    
-    // .padLeft(2, '0') adds a zero if needed (e.g., "5" becomes "05")
+    // If running OR paused, show remainingSeconds
+    if (remainingSeconds < 0) return "00:00";
+
+    int minutes = remainingSeconds ~/ 60;
+    int seconds = remainingSeconds % 60;
     return "${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}";
   }
 
-//UI
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          // TIMER CIRCLE
           Stack(
             alignment: Alignment.center,
             children: [
-              // Layer 1: Draining Circle
               SizedBox(
                 width: 300,
                 height: 300,
                 child: CircularProgressIndicator(
-                  // remaining/total = percentage (0.0 to 1.0)
-                  value: isRunning ? (remainingSeconds / totalSeconds) : 1.0,
+                  value: (isRunning || isPaused) 
+                    ? (remainingSeconds / totalSeconds).clamp(0.0, 1.0) 
+                    : 1.0,
                   strokeWidth: 15,
-                  color: Colors.white,
-                  backgroundColor: Colors.white.withValues(alpha: 0.3,),
+                  color: isPaused ? Colors.orangeAccent : Colors.white, // Orange when paused!
+                  backgroundColor: Colors.white.withValues(alpha: 0.3),
                 ),
               ),
-
-              // Layer 2: Text
               Text(
                 getFormattedTime(),
                 style: const TextStyle(
@@ -115,71 +201,53 @@ void startTimer() {
               ),
             ],
           ),
-
+          
           const SizedBox(height: 40),
 
-          // 3. Duration Adjusting (Only visible when NOT running)
-          if (!isRunning)
+          // SLIDER (Only visible when completely STOPPED)
+          if (!isRunning && !isPaused)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 40),
               child: Column(
                 children: [
-                  const Text(
-                    "Adjust Duration",
-                    style: TextStyle(color: Colors.white, fontSize: 20),
-                  ),
-
+                  const Text("Adjust Duration", style: TextStyle(color: Colors.white, fontSize: 20)),
                   const SizedBox(height: 20),
-
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Minus Button
                       IconButton(
                         onPressed: () {
                           setState(() {
-                            if (selectedMinutes > 1) {
-                              selectedMinutes--;
-                            }
+                            if (selectedMinutes > 1) selectedMinutes--;
                           });
                         },
-                        icon: const Icon(
-                          Icons.remove_circle_outline,
-                          color: Colors.white,
-                          size: 30,
-                        ),
+                        icon: const Icon(Icons.remove_circle_outline, color: Colors.white, size: 30),
                       ),
-
-                      // Spacing
                       const SizedBox(width: 1),
-
-                      // Plus Button
                       IconButton(
                         onPressed: () {
                           setState(() {
-                            if (selectedMinutes < 120) {
-                              selectedMinutes++;
-                            }
+                            if (selectedMinutes < 120) selectedMinutes++;
                           });
                         },
-                        icon: const Icon(
-                          Icons.add_circle_outline,
-                          color: Colors.white,
-                          size: 30,
-                        ),
+                        icon: const Icon(Icons.add_circle_outline, color: Colors.white, size: 30),
                       ),
                     ],
                   ),
-
                   Slider(
                     value: selectedMinutes,
                     min: 1,
                     max: 120,
+                    // FIX OF BUG: Force the slider to snap to 119 steps (1 to 120)
+                    // So the user can ONLY pick minutes instead of seconds
+                    divisions: 119, 
+                    
                     activeColor: Colors.white,
                     inactiveColor: Colors.white.withValues(alpha: 0.3),
                     onChanged: (newValue) {
                       setState(() {
-                        selectedMinutes = newValue;
+                        // Extra safety: round it to nearest whole number
+                        selectedMinutes = newValue.roundToDouble(); 
                       });
                     },
                   ),
@@ -189,24 +257,44 @@ void startTimer() {
 
           const SizedBox(height: 20),
 
-          // 4. The Button
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.blue,
-              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-            ),
-            onPressed: () {
-              if (isRunning) {
-                stopTimer();
-              } else {
-                startTimer();
-              }
-            },
-            child: Text(
-              isRunning ? "STOP" : "START FOCUS",
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
+          // BUTTONS ROW
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // MAIN ACTION BUTTON (Start / Pause / Resume)
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: isPaused ? Colors.orange : Colors.blue,
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                ),
+                onPressed: () {
+                  if (isRunning) {
+                    pauseTimer();
+                  } else {
+                    startTimer(); // Works for both Start and Resume
+                  }
+                },
+                child: Text(
+                  isRunning ? "PAUSE" : (isPaused ? "RESUME" : "START FOCUS"),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+
+              // STOP BUTTON (Only visible when Active)
+              if (isRunning || isPaused) ...[
+                const SizedBox(width: 20),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                  ),
+                  onPressed: stopTimer,
+                  child: const Text("STOP", style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ],
           ),
         ],
       ),
