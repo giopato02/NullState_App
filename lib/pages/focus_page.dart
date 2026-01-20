@@ -59,7 +59,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     "Inhale peace, exhale stress",
     "Let your thoughts float away",
     "Listen to the sounds around you",
-    "Ground yourself, feel the present",
+    "Ground yourself, be present",
     "Silence is recharging",
     "Feel the ground beneath your feet",
     "Let go of the rush",
@@ -69,7 +69,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     "Rest is most productive, if used wisely",
     "You are making progress",
     "Recharge for the next wave",
-    "This pause powers your focus",
+    "This break powers your focus",
     "Be kind to yourself",
     "You've earned this moment",
     "Trust the process",
@@ -339,14 +339,17 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
             // 3. QUOTES (Visible only in Break Mode + Running)
             if (isBreakMode && (isRunning || isPaused))
               SizedBox(
-                height: 50, // Fixed height to prevent jumping
+                height: 50, 
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 1000),
+                  // FIX of BUG: The Key must be on the DIRECT child (Padding), 
+                  // not the Text inside
                   child: Padding(
+                    key: ValueKey<String>(_currentQuote), // MOVED KEY HERE
                     padding: const EdgeInsets.symmetric(horizontal: 20.0),
                     child: Text(
                       _currentQuote,
-                      key: ValueKey<String>(_currentQuote), // Key triggers animation
+                      // removed key from here
                       style: const TextStyle(
                         color: Colors.white, 
                         fontSize: 18, 
