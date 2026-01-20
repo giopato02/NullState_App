@@ -14,6 +14,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   late double _focusDuration;
   late bool _isStrictMode;
+  late bool _autoFlow;
   late bool _isDarkMode;
   late bool _isSoundEnabled;
 
@@ -23,6 +24,7 @@ class _SettingsPageState extends State<SettingsPage> {
     // Load data from Hive, with defaults if it's the first time running
     _focusDuration = _settingsBox.get('focusDuration', defaultValue: 25.0);
     _isStrictMode = _settingsBox.get('isStrictMode', defaultValue: false);
+    _autoFlow = _settingsBox.get('autoFlow', defaultValue: false);
     _isDarkMode = _settingsBox.get('isDarkMode', defaultValue: false);
     _isSoundEnabled = _settingsBox.get('isSoundEnabled', defaultValue: true);
   }
@@ -205,6 +207,21 @@ void _showStrictModeInfo() {
             },
           ),
 
+          // Setting 3. Frictionless Flow (Auto Switch)
+          SwitchListTile(
+            title: const Text("Frictionless Flow"),
+            subtitle: const Text("Auto-switch to Break when Focus ends"),
+            secondary: const Icon(Icons.autorenew),
+            activeThumbColor: Colors.blue,
+            value: _autoFlow,
+            onChanged: (val) {
+              setState(() {
+                _autoFlow = val;
+                _settingsBox.put('autoFlow', val);
+              });
+            },
+          ),
+
           const Divider(height: 40),
 
           // SECTION 2: APP
@@ -215,7 +232,7 @@ void _showStrictModeInfo() {
           ),
           const SizedBox(height: 10),
 
-          // Setting 3: Dark Mode
+          // Setting 4: Dark Mode
           SwitchListTile(
             title: const Text("Dark Mode"),
             secondary: const Icon(Icons.dark_mode_outlined),
@@ -226,12 +243,12 @@ void _showStrictModeInfo() {
                 _isDarkMode = val;
                 _settingsBox.put('isDarkMode', val);
                 // Note: Actual Dark Mode theme switching requires a restart or Listenables.
-                // We will implement the visual change in a later session.
+                // will implement the visual change in a later session.
               });
             },
           ),
 
-          // Setting 4: Sound & Haptics
+          // Setting 5: Sound & Haptics
           SwitchListTile(
             title: const Text("Sound & Haptics"),
             secondary: const Icon(Icons.volume_up_outlined),
@@ -255,7 +272,7 @@ void _showStrictModeInfo() {
           ),
           const SizedBox(height: 10),
 
-          // Setting 5: Feedback
+          // Setting 6: Feedback
           ListTile(
             leading: const Icon(Icons.mail_outline),
             title: const Text("Get in Touch"),
@@ -263,7 +280,7 @@ void _showStrictModeInfo() {
             onTap: _launchEmail, // Calls our function
           ),
 
-          // Setting 6: Donation
+          // Setting 7: Donation
           ListTile(
             leading: const Icon(Icons.coffee_outlined),
             title: const Text("Support Development"),

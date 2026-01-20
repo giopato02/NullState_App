@@ -12,28 +12,20 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int currentPage = 0;
-  List<Widget> pages = const [
-    FocusPage(),
-    JournalPage(),
-  ];
+  List<Widget> pages = const [FocusPage(), JournalPage()];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.blue[200],
-
-      extendBodyBehindAppBar: true, // Allows the sky color to go behind the app bar
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.transparent, 
-        elevation: 0, 
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 20.0), // Pushes it away from the edge
+            padding: const EdgeInsets.only(right: 20.0),
             child: IconButton(
-              icon: const Icon(
-                Icons.settings, 
-                color: Colors.white, 
-                size: 30, // Makes the gear bigger
-              ),
+              icon: const Icon(Icons.settings, color: Colors.white, size: 30),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -46,34 +38,32 @@ class _HomePageState extends State<HomePage> {
       ),
 
       extendBody: true,
-      body: pages[currentPage],
-      
+
+      // FIX OF BUG: IndexedStack keeps all pages alive
+      // Before, the timer used to get reset when switching to journal.
+      // Now, the timer will keep running even if the user switches to journal.
+      body: IndexedStack(index: currentPage, children: pages),
+
       bottomNavigationBar: NavigationBar(
-        backgroundColor: Colors.white.withValues(alpha: 0.5), 
+        backgroundColor: Colors.white.withValues(alpha: 0.5),
         elevation: 0,
         indicatorColor: Colors.white.withValues(alpha: 0.5),
-
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.timer), 
+            icon: Icon(Icons.timer),
             label: 'Focus',
-            selectedIcon: Icon(
-              Icons.timer, 
-              color: Colors.blue),
+            selectedIcon: Icon(Icons.timer, color: Colors.blue),
           ),
           NavigationDestination(
-            icon: Icon(Icons.my_library_books), 
+            icon: Icon(Icons.my_library_books),
             label: 'Journal',
-            selectedIcon: Icon(
-              Icons.my_library_books, 
-              color: Colors.blue),
+            selectedIcon: Icon(Icons.my_library_books, color: Colors.blue),
           ),
         ],
         onDestinationSelected: (int index) {
           setState(() {
             currentPage = index;
-          }
-          );
+          });
         },
         selectedIndex: currentPage,
       ),
