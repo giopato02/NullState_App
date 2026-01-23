@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'dart:async';
-import 'dart:math'; // For random quotes
+import 'dart:math';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 class FocusPage extends StatefulWidget {
@@ -30,7 +30,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
   // -- Quotes Logic --
   Timer? _quoteTimer;
   String _currentQuote = "Relax & Recharge";
-  int _lastQuoteIndex = -1; 
+  int _lastQuoteIndex = -1;
 
   final List<String> _breakQuotes = [
     "Breathe in... Breathe out...",
@@ -43,7 +43,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     "Release the tension in your muscles",
     "Calm your brain",
     "Stand up, look around, feel present...",
-    
+
     "Close your eyes, relax yourself",
     "Unclench your jaw",
     "Drop your shoulders down",
@@ -54,7 +54,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     "Massage your temples",
     "Relax your forehead",
     "Step away from the screen",
-    
+
     "Rest your eyes, look at something outside",
     "Inhale peace, exhale stress",
     "Let your thoughts float away",
@@ -75,10 +75,10 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     "Trust the process",
     "Think of something that makes you smile",
     "Reset... Refocus... Restart...",
-    "Your mind needs this space"
+    "Your mind needs this space",
   ];
 
-@override
+  @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
@@ -132,13 +132,13 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
   // LOGIC TO PREVENT REPEATS
   void _updateQuote() {
     if (_breakQuotes.isEmpty) return;
-    
+
     int newIndex;
     do {
       newIndex = Random().nextInt(_breakQuotes.length);
     } while (newIndex == _lastQuoteIndex && _breakQuotes.length > 1);
 
-    _lastQuoteIndex = newIndex; 
+    _lastQuoteIndex = newIndex;
 
     setState(() {
       _currentQuote = _breakQuotes[newIndex];
@@ -147,7 +147,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
 
   void _startQuoteCycle() {
     _updateQuote(); // Show one immediately
-    
+
     _quoteTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       if (!mounted) return;
       _updateQuote();
@@ -175,7 +175,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     if (!isBreakMode && isStrict) {
       WakelockPlus.enable();
     }
-    
+
     // If it's Break Mode, start the quotes!
     if (isBreakMode) {
       _startQuoteCycle();
@@ -185,7 +185,8 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
       if (!mounted) return;
       setState(() {
         final now = DateTime.now();
-        remainingSeconds = (_endTime!.difference(now).inMilliseconds / 1000).ceil();
+        remainingSeconds = (_endTime!.difference(now).inMilliseconds / 1000)
+            .ceil();
 
         if (remainingSeconds <= 0) {
           _finishTimer();
@@ -196,7 +197,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
 
   void pauseTimer() {
     timer?.cancel();
-    _quoteTimer?.cancel(); 
+    _quoteTimer?.cancel();
     WakelockPlus.disable();
     setState(() {
       isRunning = false;
@@ -215,7 +216,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
       _endTime = null;
     });
   }
-  
+
   // Called when timer hits 0 naturally
   void _finishTimer() {
     stopTimer();
@@ -228,7 +229,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     if (autoFlow) {
       // 1. Determine the target mode (If currently Focus, go Break. If Break, go Focus)
       bool targetModeIsBreak = !isBreakMode;
-      
+
       // 2. Switch UI and Duration
       _toggleMode(targetModeIsBreak);
 
@@ -272,16 +273,18 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context), 
-              child: const Text("I understand")
-            )
+              onPressed: () => Navigator.pop(context),
+              child: const Text("I understand"),
+            ),
           ],
         ),
       );
-    } else if (state == AppLifecycleState.resumed && isRunning && _endTime != null) {
-       setState(() {
-          remainingSeconds = _endTime!.difference(DateTime.now()).inSeconds;
-       });
+    } else if (state == AppLifecycleState.resumed &&
+        isRunning &&
+        _endTime != null) {
+      setState(() {
+        remainingSeconds = _endTime!.difference(DateTime.now()).inSeconds;
+      });
     }
   }
 
@@ -298,24 +301,34 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     return ValueListenableBuilder(
       valueListenable: Hive.box('settings_box').listenable(),
       builder: (context, Box box, widget) {
-        
         bool isDarkMode = box.get('isDarkMode', defaultValue: false);
 
         // Determine Background Color
         Color? bgColor;
         if (isBreakMode) {
-          // Break Mode: Light Green (Normal) vs Dark Green (Dark Mode)
-          bgColor = isDarkMode ? const Color.fromARGB(255, 12, 67, 17) : Colors.green[200];
+          bgColor = isDarkMode ? Colors.green[900] : Colors.green[200];
         } else {
-          // Focus Mode: Transparent (Normal) vs Transparent (Dark Mode handles Scaffold)
-          // Since HomePage scaffold handles the Black BG, we keep this transparent.
-          bgColor = Colors.transparent; 
+          // Transparent allows the HomePage Navy/Blue to show through
+          bgColor = Colors.transparent;
         }
 
-        // Determine Button Color
-        Color btnColor = isDarkMode ? Colors.grey[800]! : Colors.white;
-        Color btnTextColor = isDarkMode ? Colors.white : Colors.blue;
-        if (isBreakMode && !isDarkMode) btnTextColor = Colors.green; // Keep green text for light mode break
+        // Define The Palette, Minimize White
+        // Light Mode = Pure White elements
+        // Dark Mode = Soft Blue elements (blue[100]) to reduce glare
+        Color foregroundColor = isDarkMode ? Colors.blue[100]! : Colors.white;
+        Color timerRingColor = isDarkMode ? Colors.blue[200]! : Colors.white;
+        // The track behind the timer: Dark shadow in Dark Mode, White ghost in Light Mode
+        Color timerTrackColor = isDarkMode
+            ? Colors.black.withValues(alpha: 0.3)
+            : Colors.white.withValues(alpha: 0.3);
+
+        // Button Styling
+        Color btnColor = isDarkMode
+            ? const Color(0xFF1E1E1E)
+            : Colors.white; // Dark Grey vs White
+        Color btnTextColor = isDarkMode ? Colors.blue[100]! : Colors.blue;
+
+        if (isBreakMode && !isDarkMode) btnTextColor = Colors.green;
 
         return AnimatedContainer(
           duration: const Duration(milliseconds: 800),
@@ -329,7 +342,9 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
                 Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: isDarkMode ? Colors.grey[800] : Colors.white.withValues(alpha: 0.3),
+                    color: isDarkMode
+                        ? const Color(0xFF1E1E1E)
+                        : Colors.white.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(25),
                   ),
                   child: Row(
@@ -340,7 +355,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: 40),
 
                 // 2. TIMER CIRCLE
@@ -351,25 +366,26 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
                       width: 300,
                       height: 300,
                       child: CircularProgressIndicator(
-                        value: (isRunning || isPaused) 
-                          ? (remainingSeconds / totalSeconds).clamp(0.0, 1.0) 
-                          : 1.0,
+                        value: (isRunning || isPaused)
+                            ? (remainingSeconds / totalSeconds).clamp(0.0, 1.0)
+                            : 1.0,
                         strokeWidth: 15,
-                        color: isPaused ? Colors.orangeAccent : Colors.white,
-                        backgroundColor: Colors.white.withValues(alpha: 0.3),
+                        // Dynamic Colors applied here
+                        color: isPaused ? Colors.orangeAccent : timerRingColor,
+                        backgroundColor: timerTrackColor,
                       ),
                     ),
                     Text(
                       getFormattedTime(),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 60,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: foregroundColor, // Soft Blue in Dark Mode
                       ),
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 30),
 
                 // 3. QUOTES
@@ -383,11 +399,11 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
                         padding: const EdgeInsets.symmetric(horizontal: 20.0),
                         child: Text(
                           _currentQuote,
-                          style: const TextStyle(
-                            color: Colors.white, 
-                            fontSize: 18, 
+                          style: TextStyle(
+                            color: foregroundColor,
+                            fontSize: 18,
                             fontStyle: FontStyle.italic,
-                            fontWeight: FontWeight.w500
+                            fontWeight: FontWeight.w500,
                           ),
                           textAlign: TextAlign.center,
                           maxLines: 2,
@@ -396,18 +412,21 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
                       ),
                     ),
                   )
-                else 
+                else
                   const SizedBox(height: 50),
 
-                // 4. SLIDER
+                // 4. SLIDER & CONTROLS
                 if (!isRunning && !isPaused)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 40),
                     child: Column(
                       children: [
                         Text(
-                          isBreakMode ? "Rest Duration" : "Focus Duration", 
-                          style: const TextStyle(color: Colors.white, fontSize: 20)
+                          isBreakMode ? "Rest Duration" : "Focus Duration",
+                          style: TextStyle(
+                            color: foregroundColor,
+                            fontSize: 20,
+                          ),
                         ),
                         const SizedBox(height: 10),
                         Row(
@@ -415,19 +434,31 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
                           children: [
                             IconButton(
                               onPressed: () {
-                                setState(() { if (selectedMinutes > 1) selectedMinutes--; });
+                                setState(() {
+                                  if (selectedMinutes > 1) selectedMinutes--;
+                                });
                               },
-                              icon: const Icon(Icons.remove_circle_outline, color: Colors.white, size: 30),
+                              icon: Icon(
+                                Icons.remove_circle_outline,
+                                color: foregroundColor,
+                                size: 30,
+                              ),
                             ),
                             const SizedBox(width: 1),
                             IconButton(
                               onPressed: () {
-                                setState(() { 
+                                setState(() {
                                   double maxVal = isBreakMode ? 30 : 120;
-                                  if (selectedMinutes < maxVal) selectedMinutes++; 
+                                  if (selectedMinutes < maxVal) {
+                                    selectedMinutes++;
+                                  }
                                 });
                               },
-                              icon: const Icon(Icons.add_circle_outline, color: Colors.white, size: 30),
+                              icon: Icon(
+                                Icons.add_circle_outline,
+                                color: foregroundColor,
+                                size: 30,
+                              ),
                             ),
                           ],
                         ),
@@ -436,10 +467,13 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
                           min: 1,
                           max: isBreakMode ? 30 : 120,
                           divisions: isBreakMode ? 29 : 119,
-                          activeColor: Colors.white,
-                          inactiveColor: Colors.white.withValues(alpha: 0.3),
+                          // Slider colors adapted to the theme
+                          activeColor: foregroundColor,
+                          inactiveColor: foregroundColor.withValues(alpha: 0.3),
                           onChanged: (newValue) {
-                            setState(() { selectedMinutes = newValue.roundToDouble(); });
+                            setState(() {
+                              selectedMinutes = newValue.roundToDouble();
+                            });
                           },
                         ),
                       ],
@@ -448,23 +482,36 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
 
                 const SizedBox(height: 20),
 
-                // 5. BUTTONS
+                // 5. ACTION BUTTONS
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: btnColor, // Changes to Grey in Dark Mode
-                        foregroundColor: isPaused 
-                           ? Colors.orange 
-                           : btnTextColor,
-                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                        backgroundColor: btnColor,
+                        foregroundColor: isPaused
+                            ? Colors.orange
+                            : btnTextColor,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 40,
+                          vertical: 20,
+                        ),
                       ),
                       onPressed: () {
-                        if (isRunning) { pauseTimer(); } else { startTimer(); }
+                        if (isRunning) {
+                          pauseTimer();
+                        } else {
+                          startTimer();
+                        }
                       },
                       child: Text(
-                        isRunning ? "PAUSE" : (isPaused ? "RESUME" : (isBreakMode ? "START BREAK" : "START FOCUS")),
+                        isRunning
+                            ? "PAUSE"
+                            : (isPaused
+                                  ? "RESUME"
+                                  : (isBreakMode
+                                        ? "START BREAK"
+                                        : "START FOCUS")),
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -474,10 +521,16 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.redAccent,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 20,
+                          ),
                         ),
                         onPressed: stopTimer,
-                        child: const Text("STOP", style: TextStyle(fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          "STOP",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ],
                   ],
@@ -486,16 +539,17 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
             ),
           ),
         );
-      }
+      },
     );
   }
 
-  // Updated Helper for Mode Buttons
+  // Updated Helper for Mode Buttons to use the new colors
   Widget _buildModeBtn(String title, bool isBreak, bool isDarkMode) {
     bool isActive = (isBreakMode == isBreak);
-    // Active Text Color: Green for break, Blue for Focus (or White in DarkMode?)
-    // Let's keep the branding colors even in Dark Mode for the active state
+    // Active Text: Green (Break) or Blue (Focus)
     Color activeTextColor = isBreak ? Colors.green : Colors.blue;
+    // Inactive Text: Grey (Dark Mode) or White (Light Mode)
+    Color inactiveTextColor = isDarkMode ? Colors.grey : Colors.white;
 
     return GestureDetector(
       onTap: () => _toggleMode(isBreak),
@@ -503,19 +557,16 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
         duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
-          // Active button gets White (Normal) or Dark Grey (Dark Mode)
-          color: isActive 
-             ? (isDarkMode ? Colors.black : Colors.white) 
-             : Colors.transparent,
+          color: isActive
+              ? (isDarkMode ? const Color(0xFF1E1E1E) : Colors.white)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           title,
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: isActive 
-              ? activeTextColor 
-              : (isDarkMode ? Colors.grey : Colors.white),
+            color: isActive ? activeTextColor : inactiveTextColor,
           ),
         ),
       ),
