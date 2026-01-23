@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter/services.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class FocusPage extends StatefulWidget {
   const FocusPage({super.key});
@@ -33,6 +34,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
   String _currentQuote = "Relax & Recharge";
   int _lastQuoteIndex = -1;
 
+  final AudioPlayer _audioPlayer = AudioPlayer();
   final List<String> _breakQuotes = [
     "Breathe in... Breathe out...",
     "Look at something 20 feet away",
@@ -111,6 +113,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     WakelockPlus.disable();
     timer?.cancel();
     _quoteTimer?.cancel();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -242,14 +245,23 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
   }
 
   // Called when timer hits 0 naturally
-  void _finishTimer() {
+  void _finishTimer() async{
     _triggerHaptic(success: true);
     stopTimer();
 
-    // CHECK FRICTIONLESS FLOW
     final settingsBox = Hive.box('settings_box');
-    bool autoFlow = settingsBox.get('autoFlow', defaultValue: false);
+    bool isSoundEnabled = settingsBox.get('isSoundEnabled', defaultValue: true);
+    
+    if (isSoundEnabled) {
+      try {
+        await _audioPlayer.play(AssetSource('sounds/ding.mp3')); 
+      } catch (e) {
+        debugPrint("Error playing sound: $e");
+      }
+    }
 
+    // CHECK FRICTIONLESS FLOW
+    bool autoFlow = settingsBox.get('autoFlow', defaultValue: false);
     if (autoFlow) {
       // 1. Determine the target mode (If currently Focus, go Break. If Break, go Focus)
       bool targetModeIsBreak = !isBreakMode;
