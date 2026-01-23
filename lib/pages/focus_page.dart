@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'dart:async';
 import 'dart:math';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:flutter/services.dart';
 
 class FocusPage extends StatefulWidget {
   const FocusPage({super.key});
@@ -115,20 +116,6 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
 
   // -- FUNCTIONS --
 
-  void _toggleMode(bool toBreak) {
-    if (isRunning) return; // Lock toggle while timer runs
-
-    setState(() {
-      isBreakMode = toBreak;
-      // Set defaults for the mode
-      if (isBreakMode) {
-        selectedMinutes = 5; // Default break
-      } else {
-        _loadSettings(); // Revert to user's default focus time
-      }
-    });
-  }
-
   // LOGIC TO PREVENT REPEATS
   void _updateQuote() {
     if (_breakQuotes.isEmpty) return;
@@ -154,7 +141,42 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     });
   }
 
+  // Haptics Helper
+  void _triggerHaptic({bool heavy = false, bool success = false}) {
+    final settingsBox = Hive.box('settings_box');
+    bool isSoundEnabled = settingsBox.get('isSoundEnabled', defaultValue: true);
+
+    if (isSoundEnabled) {
+      if (success) {
+        // Long vibration for finishing
+        HapticFeedback.vibrate();
+      } else if (heavy) {
+        // Thud for Stop/Delete
+        HapticFeedback.heavyImpact();
+      } else {
+        // Crisp click for buttons
+        HapticFeedback.mediumImpact();
+      }
+    }
+  }
+
+  void _toggleMode(bool toBreak) {
+    if (isRunning) return;
+
+    _triggerHaptic();
+
+    setState(() {
+      isBreakMode = toBreak;
+      if (isBreakMode) {
+        selectedMinutes = 5;
+      } else {
+        _loadSettings();
+      }
+    });
+  }
+
   void startTimer() {
+    _triggerHaptic();
     final settingsBox = Hive.box('settings_box');
     bool isStrict = settingsBox.get('isStrictMode', defaultValue: false);
 
@@ -196,6 +218,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
   }
 
   void pauseTimer() {
+    _triggerHaptic();
     timer?.cancel();
     _quoteTimer?.cancel();
     WakelockPlus.disable();
@@ -206,6 +229,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
   }
 
   void stopTimer() {
+    _triggerHaptic(heavy: true);
     timer?.cancel();
     _quoteTimer?.cancel();
     WakelockPlus.disable();
@@ -219,8 +243,8 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
 
   // Called when timer hits 0 naturally
   void _finishTimer() {
+    _triggerHaptic(success: true);
     stopTimer();
-    // TODO: Play Sound Here
 
     // CHECK FRICTIONLESS FLOW
     final settingsBox = Hive.box('settings_box');
@@ -229,10 +253,8 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     if (autoFlow) {
       // 1. Determine the target mode (If currently Focus, go Break. If Break, go Focus)
       bool targetModeIsBreak = !isBreakMode;
-
       // 2. Switch UI and Duration
       _toggleMode(targetModeIsBreak);
-
       // 3. AUTO-START THE NEXT TIMER
       startTimer();
     }
@@ -335,207 +357,210 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
           curve: Curves.easeInOut,
           color: bgColor,
           child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // 1. MODE TOGGLE
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: isDarkMode
-                        ? const Color(0xFF1E1E1E)
-                        : Colors.white.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildModeBtn("Focus", false, isDarkMode),
-                      _buildModeBtn("Break", true, isDarkMode),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 40),
-
-                // 2. TIMER CIRCLE
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(
-                      width: 300,
-                      height: 300,
-                      child: CircularProgressIndicator(
-                        value: (isRunning || isPaused)
-                            ? (remainingSeconds / totalSeconds).clamp(0.0, 1.0)
-                            : 1.0,
-                        strokeWidth: 15,
-                        // Dynamic Colors applied here
-                        color: isPaused ? Colors.orangeAccent : timerRingColor,
-                        backgroundColor: timerTrackColor,
-                      ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(top: 60, bottom: 150),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // 1. MODE TOGGLE
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: isDarkMode
+                          ? const Color(0xFF1E1E1E)
+                          : Colors.white.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(25),
                     ),
-                    Text(
-                      getFormattedTime(),
-                      style: TextStyle(
-                        fontSize: 60,
-                        fontWeight: FontWeight.bold,
-                        color: foregroundColor, // Soft Blue in Dark Mode
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 30),
-
-                // 3. QUOTES
-                if (isBreakMode && (isRunning || isPaused))
-                  SizedBox(
-                    height: 50,
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 1000),
-                      child: Padding(
-                        key: ValueKey<String>(_currentQuote),
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                        child: Text(
-                          _currentQuote,
-                          style: TextStyle(
-                            color: foregroundColor,
-                            fontSize: 18,
-                            fontStyle: FontStyle.italic,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  const SizedBox(height: 50),
-
-                // 4. SLIDER & CONTROLS
-                if (!isRunning && !isPaused)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 40),
-                    child: Column(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          isBreakMode ? "Rest Duration" : "Focus Duration",
-                          style: TextStyle(
-                            color: foregroundColor,
-                            fontSize: 20,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            IconButton(
-                              onPressed: () {
-                                setState(() {
-                                  if (selectedMinutes > 1) selectedMinutes--;
-                                });
-                              },
-                              icon: Icon(
-                                Icons.remove_circle_outline,
-                                color: foregroundColor,
-                                size: 30,
-                              ),
-                            ),
-                            const SizedBox(width: 1),
-                            IconButton(
-                              onPressed: () {
-                                setState(() {
-                                  double maxVal = isBreakMode ? 30 : 120;
-                                  if (selectedMinutes < maxVal) {
-                                    selectedMinutes++;
-                                  }
-                                });
-                              },
-                              icon: Icon(
-                                Icons.add_circle_outline,
-                                color: foregroundColor,
-                                size: 30,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Slider(
-                          value: selectedMinutes,
-                          min: 1,
-                          max: isBreakMode ? 30 : 120,
-                          divisions: isBreakMode ? 29 : 119,
-                          // Slider colors adapted to the theme
-                          activeColor: foregroundColor,
-                          inactiveColor: foregroundColor.withValues(alpha: 0.3),
-                          onChanged: (newValue) {
-                            setState(() {
-                              selectedMinutes = newValue.roundToDouble();
-                            });
-                          },
-                        ),
+                        _buildModeBtn("Focus", false, isDarkMode),
+                        _buildModeBtn("Break", true, isDarkMode),
                       ],
                     ),
                   ),
-
-                const SizedBox(height: 20),
-
-                // 5. ACTION BUTTONS
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: btnColor,
-                        foregroundColor: isPaused
-                            ? Colors.orange
-                            : btnTextColor,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 40,
-                          vertical: 20,
+              
+                  const SizedBox(height: 40),
+              
+                  // 2. TIMER CIRCLE
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        width: 300,
+                        height: 300,
+                        child: CircularProgressIndicator(
+                          value: (isRunning || isPaused)
+                              ? (remainingSeconds / totalSeconds).clamp(0.0, 1.0)
+                              : 1.0,
+                          strokeWidth: 15,
+                          // Dynamic Colors applied here
+                          color: isPaused ? Colors.orangeAccent : timerRingColor,
+                          backgroundColor: timerTrackColor,
                         ),
                       ),
-                      onPressed: () {
-                        if (isRunning) {
-                          pauseTimer();
-                        } else {
-                          startTimer();
-                        }
-                      },
-                      child: Text(
-                        isRunning
-                            ? "PAUSE"
-                            : (isPaused
-                                  ? "RESUME"
-                                  : (isBreakMode
-                                        ? "START BREAK"
-                                        : "START FOCUS")),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    if (isRunning || isPaused) ...[
-                      const SizedBox(width: 20),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.redAccent,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 20,
-                          ),
-                        ),
-                        onPressed: stopTimer,
-                        child: const Text(
-                          "STOP",
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                      Text(
+                        getFormattedTime(),
+                        style: TextStyle(
+                          fontSize: 60,
+                          fontWeight: FontWeight.bold,
+                          color: foregroundColor, // Soft Blue in Dark Mode
                         ),
                       ),
                     ],
-                  ],
-                ),
-              ],
+                  ),
+              
+                  const SizedBox(height: 30),
+              
+                  // 3. QUOTES
+                  if (isBreakMode && (isRunning || isPaused))
+                    SizedBox(
+                      height: 50,
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 1000),
+                        child: Padding(
+                          key: ValueKey<String>(_currentQuote),
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                          child: Text(
+                            _currentQuote,
+                            style: TextStyle(
+                              color: foregroundColor,
+                              fontSize: 18,
+                              fontStyle: FontStyle.italic,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    const SizedBox(height: 20),
+              
+                  // 4. SLIDER & CONTROLS
+                  if (!isRunning && !isPaused)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      child: Column(
+                        children: [
+                          Text(
+                            isBreakMode ? "Rest Duration" : "Focus Duration",
+                            style: TextStyle(
+                              color: foregroundColor,
+                              fontSize: 20,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    if (selectedMinutes > 1) selectedMinutes--;
+                                  });
+                                },
+                                icon: Icon(
+                                  Icons.remove_circle_outline,
+                                  color: foregroundColor,
+                                  size: 30,
+                                ),
+                              ),
+                              const SizedBox(width: 1),
+                              IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    double maxVal = isBreakMode ? 30 : 120;
+                                    if (selectedMinutes < maxVal) {
+                                      selectedMinutes++;
+                                    }
+                                  });
+                                },
+                                icon: Icon(
+                                  Icons.add_circle_outline,
+                                  color: foregroundColor,
+                                  size: 30,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Slider(
+                            value: selectedMinutes,
+                            min: 1,
+                            max: isBreakMode ? 30 : 120,
+                            divisions: isBreakMode ? 29 : 119,
+                            // Slider colors adapted to the theme
+                            activeColor: foregroundColor,
+                            inactiveColor: foregroundColor.withValues(alpha: 0.3),
+                            onChanged: (newValue) {
+                              setState(() {
+                                selectedMinutes = newValue.roundToDouble();
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+              
+                  const SizedBox(height: 20),
+              
+                  // 5. ACTION BUTTONS
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: btnColor,
+                          foregroundColor: isPaused
+                              ? Colors.orange
+                              : btnTextColor,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 40,
+                            vertical: 20,
+                          ),
+                        ),
+                        onPressed: () {
+                          if (isRunning) {
+                            pauseTimer();
+                          } else {
+                            startTimer();
+                          }
+                        },
+                        child: Text(
+                          isRunning
+                              ? "PAUSE"
+                              : (isPaused
+                                    ? "RESUME"
+                                    : (isBreakMode
+                                          ? "START BREAK"
+                                          : "START FOCUS")),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      if (isRunning || isPaused) ...[
+                        const SizedBox(width: 20),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.redAccent,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 20,
+                            ),
+                          ),
+                          onPressed: stopTimer,
+                          child: const Text(
+                            "STOP",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         );
