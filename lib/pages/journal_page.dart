@@ -86,162 +86,180 @@ class _JournalPageState extends State<JournalPage> {
   Widget build(BuildContext context) {
     final double screenHeight = MediaQuery.of(context).size.height;
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
+    // Listen For Dark Mode
+    return ValueListenableBuilder(
+      valueListenable: Hive.box('settings_box').listenable(),
+      builder: (context, Box box, _) {
+        bool isDarkMode = box.get('isDarkMode', defaultValue: false);
 
-      // FLOATING ACTION BUTTON (Transforms based on Mode)
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 115.0),
-        child: FloatingActionButton(
-          // If in selection mode, show Delete button. Otherwise, show Add button.
-          onPressed: isSelectionMode
-              ? () {
-                  // Show confirmation dialog before batch delete
-                  if (selectedIds.isNotEmpty) {
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text("Delete ${selectedIds.length} notes?"),
-                        content: const Text("This cannot be undone."),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text("Cancel"),
+        return Scaffold(
+          backgroundColor: Colors.transparent,
+        
+          // FLOATING ACTION BUTTON (Transforms based on Mode)
+          floatingActionButton: Padding(
+            padding: const EdgeInsets.only(bottom: 115.0),
+            child: FloatingActionButton(
+              // If in selection mode, show Delete button. Otherwise, show Add button.
+              onPressed: isSelectionMode
+                  ? () {
+                      // Show confirmation dialog before batch delete
+                      if (selectedIds.isNotEmpty) {
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: Text("Delete ${selectedIds.length} notes?"),
+                            content: const Text("This cannot be undone."),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text("Cancel"),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  _deleteSelectedNotes();
+                                },
+                                child: const Text(
+                                  "Delete",
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            ],
                           ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              _deleteSelectedNotes();
+                        );
+                      }
+                    }
+                  : _createNewNote,
+              backgroundColor: isSelectionMode ? Colors.red : Colors.green,
+              foregroundColor: Colors.white,
+              child: Icon(isSelectionMode ? Icons.delete : Icons.add),
+            ),
+          ),
+        
+          body: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: screenHeight * 0.15),
+                  const SizedBox(height: 60),
+        
+                  const Center(
+                    child: Text(
+                      "Journal",
+                      style: TextStyle(
+                        fontSize: 60,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        height: 1.0,
+                      ),
+                    ),
+                  ),
+        
+                  const SizedBox(height: 10),
+        
+                  const Text(
+                    "Clear your mind. Dump your thoughts here to stay focused and productive.",
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white,
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+        
+                  SizedBox(
+                    height: screenHeight * 0.05,
+                  ), // Slightly reduced to fit the new row
+                  // LISTENER FOR GRID
+                  ValueListenableBuilder(
+                    valueListenable: _myBox.listenable(),
+                    builder: (context, Box<Note> box, _) {
+                      List<Note> notes = box.values.toList().cast<Note>();
+                      notes.sort((a, b) => b.date.compareTo(a.date));
+        
+                      // We must return a single widget (Column) that holds both parts
+                      return Column(
+                        children: [
+                          // The "Select All" Row 
+                          if (isSelectionMode)
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                const Text(
+                                  "Select All",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Checkbox(
+                                  value:
+                                      selectedIds.length == notes.length &&
+                                      notes.isNotEmpty,
+                                  activeColor: Colors.white,
+                                  checkColor: Colors.blue,
+                                  side: const BorderSide(
+                                    color: Colors.white,
+                                    width: 2,
+                                  ),
+                                  onChanged: (val) => _toggleSelectAll(notes),
+                                ),
+                              ],
+                            )
+                          else
+                            // Keeps the layout stable so things don't jump around
+                            const SizedBox(height: 48),
+        
+                          // The Grid
+                          GridView.builder(
+                            padding: EdgeInsets.zero,
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: notes.length,
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  crossAxisSpacing: 16,
+                                  mainAxisSpacing: 16,
+                                  childAspectRatio: 0.85,
+                                ),
+                            itemBuilder: (context, index) {
+                              // Pass the isDarkMode value down to the function
+                              return _buildNoteCard(notes[index], isDarkMode);
                             },
-                            child: const Text(
-                              "Delete",
-                              style: TextStyle(color: Colors.red),
-                            ),
                           ),
                         ],
-                      ),
-                    );
-                  }
-                }
-              : _createNewNote,
-          backgroundColor: isSelectionMode ? Colors.red : Colors.green,
-          foregroundColor: Colors.white,
-          child: Icon(isSelectionMode ? Icons.delete : Icons.add),
-        ),
-      ),
-
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: screenHeight * 0.15),
-              const SizedBox(height: 60),
-
-              const Center(
-                child: Text(
-                  "Journal",
-                  style: TextStyle(
-                    fontSize: 60,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    height: 1.0,
+                      );
+                    },
                   ),
-                ),
+                  const SizedBox(height: 80),
+                ],
               ),
-
-              const SizedBox(height: 10),
-
-              const Text(
-                "Clear your mind. Dump your thoughts here to stay focused and productive.",
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.white,
-                  height: 1.5,
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              SizedBox(
-                height: screenHeight * 0.05,
-              ), // Slightly reduced to fit the new row
-              // LISTENER FOR GRID
-              ValueListenableBuilder(
-                valueListenable: _myBox.listenable(),
-                builder: (context, Box<Note> box, _) {
-                  List<Note> notes = box.values.toList().cast<Note>();
-                  notes.sort((a, b) => b.date.compareTo(a.date));
-
-                  // We must return a single widget (Column) that holds both parts
-                  return Column(
-                    children: [
-                      // The "Select All" Row 
-                      if (isSelectionMode)
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            const Text(
-                              "Select All",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Checkbox(
-                              value:
-                                  selectedIds.length == notes.length &&
-                                  notes.isNotEmpty,
-                              activeColor: Colors.white,
-                              checkColor: Colors.blue,
-                              side: const BorderSide(
-                                color: Colors.white,
-                                width: 2,
-                              ),
-                              onChanged: (val) => _toggleSelectAll(notes),
-                            ),
-                          ],
-                        )
-                      else
-                        // Keeps the layout stable so things don't jump around
-                        const SizedBox(height: 48),
-
-                      // The Grid
-                      GridView.builder(
-                        padding: EdgeInsets.zero,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: notes.length,
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 16,
-                              mainAxisSpacing: 16,
-                              childAspectRatio: 0.85,
-                            ),
-                        itemBuilder: (context, index) {
-                          return _buildNoteCard(notes[index]);
-                        },
-                      ),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: 80),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      }
     );
   }
 
-  Widget _buildNoteCard(Note note) {
+  // ADDED: bool isDarkMode parameter to the function definition
+  Widget _buildNoteCard(Note note, bool isDarkMode) {
     // Check if this specific note is selected
     bool isSelected = selectedIds.contains(note.id);
 
+    // Now this works because isDarkMode is passed in as an argument
+    Color cardColor = isDarkMode 
+        ? Colors.grey[800]! 
+        : Colors.white.withValues(alpha: 0.9);
+        
+    Color titleColor = isDarkMode ? Colors.white : Colors.black;
+    Color contentColor = isDarkMode ? Colors.grey[300]! : Colors.black54;
+
     return Material(
-      color: Colors.white.withValues(alpha: 0.9),
+      color: cardColor, // Use the variable
       borderRadius: BorderRadius.circular(20),
       elevation: 5,
       // Wrap in Stack to put the Selection Circle on top
@@ -281,9 +299,10 @@ class _JournalPageState extends State<JournalPage> {
 
                     Text(
                       note.title.isNotEmpty ? note.title : "Untitled",
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
+                        color: titleColor,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -297,9 +316,9 @@ class _JournalPageState extends State<JournalPage> {
                     Expanded(
                       child: Text(
                         note.content,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
-                          color: Colors.black54,
+                          color: contentColor,
                         ),
                         maxLines: 4,
                         overflow: TextOverflow.ellipsis,
@@ -311,7 +330,7 @@ class _JournalPageState extends State<JournalPage> {
             ),
           ),
 
-          // The Selection Circle (Top Left Corner)
+          // The Selection Circle (Top Left Corner of Note)
           if (isSelectionMode)
             Positioned(
               top: 10,

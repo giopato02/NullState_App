@@ -110,185 +110,197 @@ void _showStrictModeInfo() {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text(
-          "Settings", 
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
-        ),
-        backgroundColor: Colors.blue[200],
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        toolbarHeight: 80.0,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          // SECTION 1: FOCUS
-          const Text(
-            "Focus",
-            style: TextStyle(
-                fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue),
-          ),
-          const SizedBox(height: 10),
+    // Listen to Settings Box for Dark Mode updates
+    return ValueListenableBuilder(
+      valueListenable: _settingsBox.listenable(),
+      builder: (context, Box box, _) {
+        bool isDarkMode = box.get('isDarkMode', defaultValue: false);
+        
+        // Dynamic Colors based on Dark Mode
+        Color bgColor = isDarkMode ? const Color(0xFF121212) : Colors.white;
+        Color textColor = isDarkMode ? Colors.white : Colors.black;
+        Color headerColor = isDarkMode ? Colors.blueAccent : Colors.blue;
+        Color iconColor = isDarkMode ? Colors.white70 : Colors.black54;
+        Color dividerColor = isDarkMode ? Colors.grey[800]! : Colors.grey[300]!;
 
-          // Setting 1: Default Duration
-          // Setting 1: Default Duration
-          ListTile(
-            // CHANGED: Title is now a Row with Text + Info Icon
-            title: Row(
-              children: [
-                const Text("Default Duration"),
-                const SizedBox(width: 8), // Small gap
-                InkWell(
-                  onTap: _showDurationInfo, // Call our new function
-                  borderRadius: BorderRadius.circular(20),
-                  child: const Padding(
-                    padding: EdgeInsets.all(4.0), // Hitbox padding
-                    child: Icon(
-                      Icons.info_outline, 
-                      size: 20, 
-                      color: Colors.grey,
-                    ),
-                  ),
-                ),
-              ],
+        return Scaffold(
+          backgroundColor: bgColor,
+          appBar: AppBar(
+            title: const Text(
+              "Settings", 
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
             ),
-            subtitle: Text("${_focusDuration.toInt()} minutes"),
-            trailing: const Icon(Icons.timer),
+            backgroundColor: isDarkMode ? Colors.grey[900] : Colors.blue[200],
+            elevation: 0,
+            iconTheme: const IconThemeData(color: Colors.white),
+            toolbarHeight: 80.0,
           ),
-          Slider(
-            value: _focusDuration,
-            min: 5,
-            max: 120,
-            divisions: 23,
-            activeColor: Colors.blue,
-            inactiveColor: Colors.blue[100],
-            label: "${_focusDuration.toInt()} min",
-            onChanged: (val) {
-              setState(() {
-                _focusDuration = val;
-                // Save to Database immediately
-                _settingsBox.put('focusDuration', val);
-              });
-            },
-          ),
+          body: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              // SECTION 1: FOCUS
+              Text(
+                "Focus",
+                style: TextStyle(
+                    fontSize: 20, fontWeight: FontWeight.bold, color: headerColor),
+              ),
+              const SizedBox(height: 10),
 
-          // Setting 2: Strict Mode
-          SwitchListTile(
-            title: Row(
-              children: [
-                const Text("Strict Mode"),
-                const SizedBox(width: 8),
-                InkWell(
-                  onTap: _showStrictModeInfo,
-                  borderRadius: BorderRadius.circular(20),
-                  child: const Padding(
-                    padding: EdgeInsets.all(4.0),
-                    child: Icon(
-                      Icons.info_outline, 
-                      size: 20, 
-                      color: Colors.grey,
+              // Setting 1: Default Duration
+              ListTile(
+                // CHANGED: Title is now a Row with Text + Info Icon
+                title: Row(
+                  children: [
+                    Text("Default Duration", style: TextStyle(color: textColor)),
+                    const SizedBox(width: 8), // Small gap
+                    InkWell(
+                      onTap: _showDurationInfo, // Call our new function
+                      borderRadius: BorderRadius.circular(20),
+                      child: const Padding(
+                        padding: EdgeInsets.all(4.0), // Hitbox padding
+                        child: Icon(
+                          Icons.info_outline, 
+                          size: 20, 
+                          color: Colors.grey,
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
-            subtitle: const Text("Keep me accountable"),
-            secondary: const Icon(Icons.lock_outline),
-            activeThumbColor: Colors.blue, 
-            value: _isStrictMode,
-            onChanged: (val) {
-              setState(() {
-                _isStrictMode = val;
-                _settingsBox.put('isStrictMode', val);
-              });
-            },
+                subtitle: Text("${_focusDuration.toInt()} minutes", style: const TextStyle(color: Colors.grey)),
+                trailing: Icon(Icons.timer, color: iconColor),
+              ),
+              Slider(
+                value: _focusDuration,
+                min: 5,
+                max: 120,
+                divisions: 23,
+                activeColor: Colors.blue,
+                inactiveColor: Colors.blue[100],
+                label: "${_focusDuration.toInt()} min",
+                onChanged: (val) {
+                  setState(() {
+                    _focusDuration = val;
+                    // Save to Database immediately
+                    _settingsBox.put('focusDuration', val);
+                  });
+                },
+              ),
+
+              // Setting 2: Strict Mode
+              SwitchListTile(
+                title: Row(
+                  children: [
+                    Text("Strict Mode", style: TextStyle(color: textColor)),
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: _showStrictModeInfo,
+                      borderRadius: BorderRadius.circular(20),
+                      child: const Padding(
+                        padding: EdgeInsets.all(4.0),
+                        child: Icon(
+                          Icons.info_outline, 
+                          size: 20, 
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                subtitle: const Text("Keep me accountable", style: TextStyle(color: Colors.grey)),
+                secondary: Icon(Icons.lock_outline, color: iconColor),
+                activeThumbColor: Colors.blue, 
+                value: _isStrictMode,
+                onChanged: (val) {
+                  setState(() {
+                    _isStrictMode = val;
+                    _settingsBox.put('isStrictMode', val);
+                  });
+                },
+              ),
+
+              // Setting 3. Frictionless Flow (Auto Switch)
+              SwitchListTile(
+                title: Text("Frictionless Flow", style: TextStyle(color: textColor)),
+                subtitle: const Text("Auto-switch to Break when Focus ends", style: TextStyle(color: Colors.grey)),
+                secondary: Icon(Icons.autorenew, color: iconColor),
+                activeThumbColor: Colors.blue,
+                value: _autoFlow,
+                onChanged: (val) {
+                  setState(() {
+                    _autoFlow = val;
+                    _settingsBox.put('autoFlow', val);
+                  });
+                },
+              ),
+
+              Divider(height: 40, color: dividerColor),
+
+              // SECTION 2: APP
+              Text(
+                "App",
+                style: TextStyle(
+                    fontSize: 20, fontWeight: FontWeight.bold, color: headerColor),
+              ),
+              const SizedBox(height: 10),
+
+              // Setting 4: Dark Mode
+              SwitchListTile(
+                title: Text("Dark Mode", style: TextStyle(color: textColor)),
+                secondary: Icon(Icons.dark_mode_outlined, color: iconColor),
+                activeThumbColor: Colors.blue,
+                value: _isDarkMode,
+                onChanged: (val) {
+                  setState(() {
+                    _isDarkMode = val;
+                    _settingsBox.put('isDarkMode', val);
+                  });
+                },
+              ),
+
+              // Setting 5: Sound & Haptics
+              SwitchListTile(
+                title: Text("Sound & Haptics", style: TextStyle(color: textColor)),
+                secondary: Icon(Icons.volume_up_outlined, color: iconColor),
+                activeThumbColor: Colors.blue,
+                value: _isSoundEnabled,
+                onChanged: (val) {
+                  setState(() {
+                    _isSoundEnabled = val;
+                    _settingsBox.put('isSoundEnabled', val);
+                  });
+                },
+              ),
+
+              Divider(height: 40, color: dividerColor),
+
+              // SECTION 3: SUPPORT
+              Text(
+                "Support",
+                style: TextStyle(
+                    fontSize: 20, fontWeight: FontWeight.bold, color: headerColor),
+              ),
+              const SizedBox(height: 10),
+
+              // Setting 6: Feedback
+              ListTile(
+                leading: Icon(Icons.mail_outline, color: iconColor),
+                title: Text("Get in Touch", style: TextStyle(color: textColor)),
+                subtitle: const Text("Send feedback or report bugs", style: TextStyle(color: Colors.grey)),
+                onTap: _launchEmail,
+              ),
+
+              // Setting 7: Donation
+              ListTile(
+                leading: Icon(Icons.coffee_outlined, color: iconColor),
+                title: Text("Support Development", style: TextStyle(color: textColor)),
+                subtitle: const Text("Buy me a coffee", style: TextStyle(color: Colors.grey)),
+                onTap: _launchSupportUrl,
+              ),
+            ],
           ),
-
-          // Setting 3. Frictionless Flow (Auto Switch)
-          SwitchListTile(
-            title: const Text("Frictionless Flow"),
-            subtitle: const Text("Auto-switch to Break when Focus ends"),
-            secondary: const Icon(Icons.autorenew),
-            activeThumbColor: Colors.blue,
-            value: _autoFlow,
-            onChanged: (val) {
-              setState(() {
-                _autoFlow = val;
-                _settingsBox.put('autoFlow', val);
-              });
-            },
-          ),
-
-          const Divider(height: 40),
-
-          // SECTION 2: APP
-          const Text(
-            "App",
-            style: TextStyle(
-                fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue),
-          ),
-          const SizedBox(height: 10),
-
-          // Setting 4: Dark Mode
-          SwitchListTile(
-            title: const Text("Dark Mode"),
-            secondary: const Icon(Icons.dark_mode_outlined),
-            activeThumbColor: Colors.blue,
-            value: _isDarkMode,
-            onChanged: (val) {
-              setState(() {
-                _isDarkMode = val;
-                _settingsBox.put('isDarkMode', val);
-                // Note: Actual Dark Mode theme switching requires a restart or Listenables.
-                // will implement the visual change in a later session.
-              });
-            },
-          ),
-
-          // Setting 5: Sound & Haptics
-          SwitchListTile(
-            title: const Text("Sound & Haptics"),
-            secondary: const Icon(Icons.volume_up_outlined),
-            activeThumbColor: Colors.blue,
-            value: _isSoundEnabled,
-            onChanged: (val) {
-              setState(() {
-                _isSoundEnabled = val;
-                _settingsBox.put('isSoundEnabled', val);
-              });
-            },
-          ),
-
-          const Divider(height: 40),
-
-          // SECTION 3: SUPPORT
-          const Text(
-            "Support",
-            style: TextStyle(
-                fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue),
-          ),
-          const SizedBox(height: 10),
-
-          // Setting 6: Feedback
-          ListTile(
-            leading: const Icon(Icons.mail_outline),
-            title: const Text("Get in Touch"),
-            subtitle: const Text("Send feedback or report bugs"),
-            onTap: _launchEmail, // Calls our function
-          ),
-
-          // Setting 7: Donation
-          ListTile(
-            leading: const Icon(Icons.coffee_outlined),
-            title: const Text("Support Development"),
-            subtitle: const Text("Buy me a coffee"),
-            onTap: _launchSupportUrl, // Calls our function
-          ),
-        ],
-      ),
+        );
+      }
     );
   }
 }
