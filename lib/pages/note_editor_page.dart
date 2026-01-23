@@ -43,11 +43,17 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
 
   // Are you sure? 
   void _confirmDelete() {
+    // Check Hive directly since we are inside a function
+    bool isDarkMode = Hive.box('settings_box').get('isDarkMode', defaultValue: false);
+    Color bgColor = isDarkMode ? Colors.grey[900]! : Colors.white;
+    Color textColor = isDarkMode ? Colors.white : Colors.black;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Delete Note?"),
-        content: const Text("This cannot be undone."),
+        backgroundColor: bgColor,
+        title: Text("Delete Note?", style: TextStyle(color: textColor)),
+        content: Text("This cannot be undone.", style: TextStyle(color: textColor)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -56,8 +62,8 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
           TextButton(
             onPressed: () {
               widget.note.delete();
-              Navigator.pop(context); // Close Dialog
-              Navigator.pop(context); // Close Editor Page
+              Navigator.pop(context);
+              Navigator.pop(context);
             },
             child: const Text("Delete", style: TextStyle(color: Colors.red)),
           ),

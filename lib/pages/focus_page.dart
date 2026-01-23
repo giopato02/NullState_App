@@ -244,26 +244,41 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     final settingsBox = Hive.box('settings_box');
     bool isStrict = settingsBox.get('isStrictMode', defaultValue: false);
 
+    // PAUSED Logic
     if (state == AppLifecycleState.paused) {
-      // ONLY punish if: Strict is ON, Timer is RUNNING, and we are NOT in Break Mode
       if (isStrict && isRunning && !isBreakMode) {
         stopTimer();
         _wasStrictlyInterrupted = true;
       }
     }
 
+    // RESUMED Logic
     if (state == AppLifecycleState.resumed && _wasStrictlyInterrupted) {
       _wasStrictlyInterrupted = false;
+
+      // Check for Dark Mode to style the dialog
+      bool isDarkMode = settingsBox.get('isDarkMode', defaultValue: false);
+      Color bgColor = isDarkMode ? Colors.grey[900]! : Colors.white;
+      Color textColor = isDarkMode ? Colors.white : Colors.black;
+
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text("Focus Broken 😔"),
-          content: const Text("Strict Mode is active. You left the app, so the timer was reset."),
-          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("I understand"))],
+          backgroundColor: bgColor,
+          title: Text("Focus Broken 😔", style: TextStyle(color: textColor)),
+          content: Text(
+            "Strict Mode is active. You left the app, so the timer was reset.",
+            style: TextStyle(color: textColor),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context), 
+              child: const Text("I understand")
+            )
+          ],
         ),
       );
     } else if (state == AppLifecycleState.resumed && isRunning && _endTime != null) {
-       // Visual update for Resume
        setState(() {
           remainingSeconds = _endTime!.difference(DateTime.now()).inSeconds;
        });
@@ -290,7 +305,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
         Color? bgColor;
         if (isBreakMode) {
           // Break Mode: Light Green (Normal) vs Dark Green (Dark Mode)
-          bgColor = isDarkMode ? Colors.green[900] : Colors.green[200];
+          bgColor = isDarkMode ? const Color.fromARGB(255, 12, 67, 17) : Colors.green[200];
         } else {
           // Focus Mode: Transparent (Normal) vs Transparent (Dark Mode handles Scaffold)
           // Since HomePage scaffold handles the Black BG, we keep this transparent.

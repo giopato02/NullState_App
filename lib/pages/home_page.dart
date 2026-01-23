@@ -31,7 +31,7 @@ class _HomePageState extends State<HomePage> {
 
         return Scaffold(
           // BACKGROUND LOGIC
-          backgroundColor: isDarkMode ? const Color(0xFF121212) : Colors.blue[200],
+          backgroundColor: isDarkMode ? const Color.fromARGB(255, 5, 29, 70) : Colors.blue[200],
           
           extendBodyBehindAppBar: true,
           appBar: AppBar(
@@ -61,34 +61,46 @@ class _HomePageState extends State<HomePage> {
             children: pages,
           ),
 
-          bottomNavigationBar: NavigationBar(
-            // Dark Mode: Darker Nav Bar, Light Mode: White-ish
-            backgroundColor: isDarkMode 
-                ? const Color(0xFF1E1E1E).withValues(alpha: 0.8) 
-                : Colors.white.withValues(alpha: 0.5),
-            elevation: 0,
-            indicatorColor: isDarkMode 
-                ? Colors.grey[700] 
-                : Colors.white.withValues(alpha: 0.5),
-            
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.timer),
-                label: 'Focus',
-                selectedIcon: Icon(Icons.timer, color: Colors.blue),
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.my_library_books),
-                label: 'Journal',
-                selectedIcon: Icon(Icons.my_library_books, color: Colors.blue),
-              ),
-            ],
-            onDestinationSelected: (int index) {
-              setState(() {
-                currentPage = index;
-              });
-            },
-            selectedIndex: currentPage,
+          bottomNavigationBar: NavigationBarTheme(
+            data: NavigationBarThemeData(
+              labelTextStyle: WidgetStateProperty.resolveWith((states) {
+                // If selected, use Blue. If not, use White (Dark Mode) or Black (Light Mode)
+                return TextStyle(
+                  color: states.contains(WidgetState.selected)
+                      ? Colors.blue
+                      : (isDarkMode ? Colors.white70 : Colors.black54),
+                  fontWeight: FontWeight.bold,
+                );
+              }),
+            ),
+            child: NavigationBar(
+              backgroundColor: isDarkMode 
+                  ? const Color(0xFF1E1E1E).withValues(alpha: 0.9) 
+                  : Colors.white.withValues(alpha: 0.5),
+              elevation: 0,
+              indicatorColor: isDarkMode 
+                  ? Colors.grey[800] 
+                  : Colors.white,
+              
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(Icons.timer_outlined),
+                  selectedIcon: Icon(Icons.timer, color: Colors.blue),
+                  label: 'Focus',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.menu_book_outlined),
+                  selectedIcon: Icon(Icons.menu_book_outlined, color: Colors.blue),
+                  label: 'Journal',
+                ),
+              ],
+              onDestinationSelected: (int index) {
+                setState(() {
+                  currentPage = index;
+                });
+              },
+              selectedIndex: currentPage,
+            ),
           ),
         );
       },

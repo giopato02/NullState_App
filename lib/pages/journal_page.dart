@@ -99,16 +99,19 @@ class _JournalPageState extends State<JournalPage> {
           floatingActionButton: Padding(
             padding: const EdgeInsets.only(bottom: 115.0),
             child: FloatingActionButton(
-              // If in selection mode, show Delete button. Otherwise, show Add button.
               onPressed: isSelectionMode
                   ? () {
-                      // Show confirmation dialog before batch delete
                       if (selectedIds.isNotEmpty) {
+                        // Check Dark Mode for Dialog
+                        Color bgColor = isDarkMode ? Colors.grey[900]! : Colors.white;
+                        Color textColor = isDarkMode ? Colors.white : Colors.black;
+
                         showDialog(
                           context: context,
                           builder: (context) => AlertDialog(
-                            title: Text("Delete ${selectedIds.length} notes?"),
-                            content: const Text("This cannot be undone."),
+                            backgroundColor: bgColor,
+                            title: Text("Delete ${selectedIds.length} note/s?", style: TextStyle(color: textColor)),
+                            content: Text("This cannot be undone.", style: TextStyle(color: textColor)),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(context),
@@ -119,10 +122,7 @@ class _JournalPageState extends State<JournalPage> {
                                   Navigator.pop(context);
                                   _deleteSelectedNotes();
                                 },
-                                child: const Text(
-                                  "Delete",
-                                  style: TextStyle(color: Colors.red),
-                                ),
+                                child: const Text("Delete", style: TextStyle(color: Colors.red)),
                               ),
                             ],
                           ),

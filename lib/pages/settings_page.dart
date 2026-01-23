@@ -44,27 +44,33 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 // Function to show the info for Default Duration
-  void _showDurationInfo() {
+void _showDurationInfo() {
+    // Check for dark mode
+    bool isDarkMode = _settingsBox.get('isDarkMode', defaultValue: false);
+    Color bgColor = isDarkMode ? Colors.grey[900]! : Colors.white;
+    Color textColor = isDarkMode ? Colors.white : Colors.black;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Focus Tips"),
+        backgroundColor: bgColor,
+        title: Text("Focus Tips", style: TextStyle(color: textColor)),
         content: Column(
-          mainAxisSize: MainAxisSize.min, // Wrap content height
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text(
+          children: [
+            const Text(
               "Note: If the timer doesn't update immediately after changing, please restart the app.",
               style: TextStyle(fontStyle: FontStyle.normal, color: Colors.grey),
             ),
-            SizedBox(height: 20),
-            Text("Recommended Intervals:", style: TextStyle(fontWeight: FontWeight.bold)),
-            SizedBox(height: 10),
-            Text("• 25 min: Pomodoro Technique"),
-            SizedBox(height: 5),
-            Text("• 60 min: Standard Session"),
-            SizedBox(height: 5),
-            Text("• 90 min: Ultradian Rhythm"),
+            const SizedBox(height: 20),
+            Text("Recommended Intervals:", style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+            const SizedBox(height: 10),
+            Text("• 25 min: Pomodoro Technique", style: TextStyle(color: textColor)),
+            const SizedBox(height: 5),
+            Text("• 60 min: Standard Session", style: TextStyle(color: textColor)),
+            const SizedBox(height: 5),
+            Text("• 90 min: Ultradian Rhythm", style: TextStyle(color: textColor)),
           ],
         ),
         actions: [
@@ -76,15 +82,21 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     );
   }
-//Function to show info for Strict Mode
-void _showStrictModeInfo() {
+// Function to show the info for Strict Mode
+  void _showStrictModeInfo() {
+    bool isDarkMode = _settingsBox.get('isDarkMode', defaultValue: false);
+    Color bgColor = isDarkMode ? Colors.grey[900]! : Colors.white;
+    Color textColor = isDarkMode ? Colors.white : Colors.black;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Strict Mode"),
-        content: const Text(
+        backgroundColor: bgColor,
+        title: Text("Strict Mode", style: TextStyle(color: textColor)),
+        content: Text(
           "This mode detects if you leave the app and resets your timer to keep you accountable.\n\n"
-          "❗️DISCLAIMER❗️: Do not shut the phone off during this mode, since the app detects it as a leave and automatically resets your timer."
+          "❗️DISCLAIMER❗️: Do not shut the phone off during this mode, since the app detects it as a leave and automatically resets your timer.",
+          style: TextStyle(color: textColor),
         ),
         actions: [
           TextButton(
