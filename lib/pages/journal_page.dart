@@ -97,7 +97,7 @@ class _JournalPageState extends State<JournalPage> {
         
           // FLOATING ACTION BUTTON (Transforms based on Mode)
           floatingActionButton: Padding(
-            padding: const EdgeInsets.only(bottom: 115.0),
+            padding: const EdgeInsets.only(bottom: 130.0),
             child: FloatingActionButton(
               onPressed: isSelectionMode
                   ? () {

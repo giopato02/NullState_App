@@ -161,7 +161,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
   }
 
   void _toggleMode(bool toBreak) {
-    if (isRunning) return;
+    if (isRunning || isPaused) return;
 
     _triggerHaptic();
 
@@ -571,6 +571,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
   // Updated Helper for Mode Buttons to use the new colors
   Widget _buildModeBtn(String title, bool isBreak, bool isDarkMode) {
     bool isActive = (isBreakMode == isBreak);
+    bool isDisabled = isRunning || isPaused;
     // Active Text: Green (Break) or Blue (Focus)
     Color activeTextColor = isBreak ? Colors.green : Colors.blue;
     // Inactive Text: Grey (Dark Mode) or White (Light Mode)
@@ -587,11 +588,14 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
               : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Text(
-          title,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: isActive ? activeTextColor : inactiveTextColor,
+        child: Opacity(
+          opacity: isDisabled ? 0.5 : 1.0,
+          child: Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: isActive ? activeTextColor : inactiveTextColor,
+            ),
           ),
         ),
       ),

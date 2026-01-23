@@ -174,37 +174,40 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
               ),
 
               // save button (Footer)
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: bodyColor,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      offset: const Offset(0, -5),
-                      blurRadius: 10,
-                    ),
-                  ],
-                ),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 50, // Taller button
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isDarkMode ? Colors.grey[800] : Colors.lightBlue,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
+              SafeArea(
+                top: false,
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: bodyColor,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        offset: const Offset(0, -5),
+                        blurRadius: 10,
                       ),
-                      elevation: 0,
-                    ),
-                    onPressed: () {
-                      // Since we Auto-Save, this button just closes the page
-                      Navigator.pop(context);
-                    },
-                    child: const Text(
-                      "Save Note",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ],
+                  ),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 50, // Taller button
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isDarkMode ? Colors.grey[800] : Colors.lightBlue,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        elevation: 0,
+                      ),
+                      onPressed: () {
+                        // Since we Auto-Save, this button just closes the page
+                        Navigator.pop(context);
+                      },
+                      child: const Text(
+                        "Save Note",
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
                 ),
