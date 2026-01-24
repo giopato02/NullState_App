@@ -10,6 +10,28 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
+  Future<void> showInstantNotification({
+    required int id,
+    required String title,
+    required String body,
+  }) async {
+    await flutterLocalNotificationsPlugin.show(
+      id,
+      title,
+      body,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'focus_channel_v2',
+          'Focus Timer',
+          channelDescription: 'Notifications for Focus Timer',
+          importance: Importance.max,
+          priority: Priority.high,
+          playSound: true,
+        ),
+      ),
+    );
+  }
+
   Future<void> init() async {
     // 1. Initialize Timezone (Needed for scheduled notifications)
     tz.initializeTimeZones();
@@ -18,17 +40,38 @@ class NotificationService {
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('app_icon');
 
-    // 3. General Settings
-    const InitializationSettings initializationSettings =
-        InitializationSettings(android: initializationSettingsAndroid);
+    // 3. iOS Settings (Fixes the "Invalid Argument" error)
+    const DarwinInitializationSettings initializationSettingsDarwin =
+        DarwinInitializationSettings(
+          requestSoundPermission: true,
+          requestBadgePermission: true,
+          requestAlertPermission: true,
+        );
 
-    // 4. Initialize Plugin
+    // 4. General Settings
+    const InitializationSettings initializationSettings =
+        InitializationSettings(
+          android: initializationSettingsAndroid,
+          iOS: initializationSettingsDarwin,
+        );
+
+    // 5. Initialize Plugin
     await flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (details) {
         // Handle what happens when user taps the notification
       },
     );
+
+    final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
+        flutterLocalNotificationsPlugin
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >();
+
+    if (androidImplementation != null) {
+      await androidImplementation.requestNotificationsPermission();
+    }
   }
 
   // SCHEDULER: Triggers when the timer SHOULD end
@@ -38,7 +81,9 @@ class NotificationService {
     required String body,
     required int seconds,
   }) async {
-    final scheduledTime = tz.TZDateTime.now(tz.local).add(Duration(seconds: seconds));
+    final scheduledTime = tz.TZDateTime.now(
+      tz.local,
+    ).add(Duration(seconds: seconds));
 
     await flutterLocalNotificationsPlugin.zonedSchedule(
       id,
@@ -48,8 +93,8 @@ class NotificationService {
       // Calculate the exact time in the future
       const NotificationDetails(
         android: AndroidNotificationDetails(
-          'focus_channel', // Channel ID
-          'Focus Timer',   // Channel Name
+          'focus_channel_v2', // Channel ID
+          'Focus Timer', // Channel Name
           channelDescription: 'Notifications for Focus Timer',
           importance: Importance.max,
           priority: Priority.high,
@@ -65,7 +110,7 @@ class NotificationService {
   Future<void> cancelNotification(int id) async {
     await flutterLocalNotificationsPlugin.cancel(id);
   }
-  
+
   // CANCEL ALL
   Future<void> cancelAll() async {
     await flutterLocalNotificationsPlugin.cancelAll();

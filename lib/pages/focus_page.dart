@@ -189,30 +189,31 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
       isPaused = false;
     });
 
+    final now = DateTime.now();
+    DateTime targetTime;
+
     if (_endTime == null) {
       totalSeconds = (selectedMinutes * 60).toInt();
       remainingSeconds = totalSeconds;
-      _endTime = DateTime.now().add(Duration(seconds: totalSeconds));
-      
-      // Schedule the notification
-      NotificationService().scheduleNotification(
-      id: 0, // ID 0 for Focus Timer
-      title: isBreakMode ? "Break Over!" : "Focus Complete!",
-      body: isBreakMode ? "Ready to focus again?" : "You did great. Take a break!",
-      seconds: totalSeconds,
-    );
-  } else {
-    // If resuming, schedule for remaining seconds
-    _endTime = DateTime.now().add(Duration(seconds: remainingSeconds));
+      targetTime = now.add(Duration(seconds: totalSeconds));
+      _endTime = targetTime;
+    } else {
+      // If resuming, schedule for remaining seconds
+      targetTime = now.add(Duration(seconds: remainingSeconds));
+      _endTime = targetTime;
+    }
 
-    // Schedule for remaining time
+    String formattedTime = "${targetTime.hour}:${targetTime.minute.toString().padLeft(2, '0')}";
+
     NotificationService().scheduleNotification(
-      id: 0, 
+      id: 0,
       title: isBreakMode ? "Break Over!" : "Focus Complete!",
-      body: isBreakMode ? "Ready to focus again?" : "You did great. Take a break.",
+      // This now tells the user when they will finish
+      body: isBreakMode 
+          ? "Ready to focus again?" 
+          : "Focusing until $formattedTime. Keep it up!", 
       seconds: remainingSeconds,
     );
-  }
 
     // STRICT MODE & WAKELOCK LOGIC
     if (!isBreakMode && isStrict) {
@@ -269,16 +270,16 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
   }
 
   // Called when timer hits 0 naturally
-  void _finishTimer() async{
+  void _finishTimer() async {
     _triggerHaptic(success: true);
     stopTimer();
 
     final settingsBox = Hive.box('settings_box');
     bool isSoundEnabled = settingsBox.get('isSoundEnabled', defaultValue: true);
-    
+
     if (isSoundEnabled) {
       try {
-        await _audioPlayer.play(AssetSource('sounds/ding.mp3')); 
+        await _audioPlayer.play(AssetSource('sounds/ding.mp3'));
       } catch (e) {
         debugPrint("Error playing sound: $e");
       }
@@ -305,44 +306,55 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
 
     // PAUSED Logic
     if (state == AppLifecycleState.paused) {
-      if (isStrict && isRunning && !isBreakMode) {
-        stopTimer();
-        _wasStrictlyInterrupted = true;
+      if (isRunning && !isBreakMode) {
+        if (isStrict) {
+          // Send Instant Warning
+          NotificationService().showInstantNotification(
+            id: 1, // Different ID so it doesn't override the timer
+            title: "⚠️ STRICT MODE ACTIVE",
+            body: "Your session will fail if you don't return immediately!",
+          );
+          
+          // Fail the session
+          stopTimer();
+          _wasStrictlyInterrupted = true;
+        } 
       }
     }
 
     // RESUMED Logic
     if (state == AppLifecycleState.resumed && _wasStrictlyInterrupted) {
-      _wasStrictlyInterrupted = false;
+      NotificationService().cancelNotification(1);
+      if (_wasStrictlyInterrupted) {
+        _wasStrictlyInterrupted = false;
+        bool isDarkMode = settingsBox.get('isDarkMode', defaultValue: false);
+        Color bgColor = isDarkMode ? Colors.grey[900]! : Colors.white;
+        Color textColor = isDarkMode ? Colors.white : Colors.black;
 
-      // Check for Dark Mode to style the dialog
-      bool isDarkMode = settingsBox.get('isDarkMode', defaultValue: false);
-      Color bgColor = isDarkMode ? Colors.grey[900]! : Colors.white;
-      Color textColor = isDarkMode ? Colors.white : Colors.black;
-
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: bgColor,
-          title: Text("Focus Broken 😔", style: TextStyle(color: textColor)),
-          content: Text(
-            "Strict Mode is active. You left the app, so the timer was reset.",
-            style: TextStyle(color: textColor),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("I understand"),
-            ),
-          ],
-        ),
-      );
-    } else if (state == AppLifecycleState.resumed &&
-        isRunning &&
-        _endTime != null) {
-      setState(() {
-        remainingSeconds = _endTime!.difference(DateTime.now()).inSeconds;
-      });
+        showDialog(
+           // dialog code 
+           context: context,
+           builder: (context) => AlertDialog(
+             backgroundColor: bgColor,
+             title: Text("Focus Broken 😔", style: TextStyle(color: textColor)),
+             content: Text(
+               "Strict Mode is active. You left the app, so the timer was reset.",
+               style: TextStyle(color: textColor),
+             ),
+             actions: [
+               TextButton(
+                 onPressed: () => Navigator.pop(context),
+                 child: const Text("I understand"),
+               ),
+             ],
+           ),
+        );
+      } else if (isRunning && _endTime != null) {
+        // Sync timer visually
+        setState(() {
+          remainingSeconds = _endTime!.difference(DateTime.now()).inSeconds;
+        });
+      }
     }
   }
 
@@ -415,9 +427,9 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
                       ],
                     ),
                   ),
-              
+
                   const SizedBox(height: 40),
-              
+
                   // 2. TIMER CIRCLE
                   Stack(
                     alignment: Alignment.center,
@@ -427,11 +439,16 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
                         height: 300,
                         child: CircularProgressIndicator(
                           value: (isRunning || isPaused)
-                              ? (remainingSeconds / totalSeconds).clamp(0.0, 1.0)
+                              ? (remainingSeconds / totalSeconds).clamp(
+                                  0.0,
+                                  1.0,
+                                )
                               : 1.0,
                           strokeWidth: 15,
                           // Dynamic Colors applied here
-                          color: isPaused ? Colors.orangeAccent : timerRingColor,
+                          color: isPaused
+                              ? Colors.orangeAccent
+                              : timerRingColor,
                           backgroundColor: timerTrackColor,
                         ),
                       ),
@@ -445,9 +462,9 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
                       ),
                     ],
                   ),
-              
+
                   const SizedBox(height: 30),
-              
+
                   // 3. QUOTES
                   if (isBreakMode && (isRunning || isPaused))
                     SizedBox(
@@ -474,7 +491,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
                     )
                   else
                     const SizedBox(height: 20),
-              
+
                   // 4. SLIDER & CONTROLS
                   if (!isRunning && !isPaused)
                     Padding(
@@ -529,7 +546,9 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
                             divisions: isBreakMode ? 29 : 119,
                             // Slider colors adapted to the theme
                             activeColor: foregroundColor,
-                            inactiveColor: foregroundColor.withValues(alpha: 0.3),
+                            inactiveColor: foregroundColor.withValues(
+                              alpha: 0.3,
+                            ),
                             onChanged: (newValue) {
                               setState(() {
                                 selectedMinutes = newValue.roundToDouble();
@@ -539,9 +558,9 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
                         ],
                       ),
                     ),
-              
+
                   const SizedBox(height: 20),
-              
+
                   // 5. ACTION BUTTONS
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
