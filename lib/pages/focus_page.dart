@@ -88,6 +88,9 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _loadSettings();
 
+    // Fix for Audio: Set mode to stop so it resets after playing
+    _audioPlayer.setReleaseMode(ReleaseMode.stop);
+
     // Listen for changes in Settings
     // If user changes 'Default Duration' in settings, update the slider immediately
     // only if the timer is NOT running.
@@ -205,10 +208,10 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
 
     String formattedTime = "${targetTime.hour}:${targetTime.minute.toString().padLeft(2, '0')}";
 
+    // Schedule the finish notification
     NotificationService().scheduleNotification(
       id: 0,
       title: isBreakMode ? "Break Over!" : "Focus Complete!",
-      // This now tells the user when they will finish
       body: isBreakMode 
           ? "Ready to focus again?" 
           : "Focusing until $formattedTime. Keep it up!", 
@@ -220,7 +223,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
       WakelockPlus.enable();
     }
 
-    // If it's Break Mode, start the quotes!
+    // If it's Break Mode, start the quotes
     if (isBreakMode) {
       _startQuoteCycle();
     }
@@ -253,14 +256,16 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     });
   }
 
-  void stopTimer() {
+  void stopTimer({bool cancelNotify = true}) {
     _triggerHaptic(heavy: true);
     timer?.cancel();
     _quoteTimer?.cancel();
     // Disable wakelock
     WakelockPlus.disable();
     // Cancel notification
-    NotificationService().cancelNotification(0);
+    if (cancelNotify) {
+      NotificationService().cancelNotification(0);
+    }
     setState(() {
       isRunning = false;
       isPaused = false;
@@ -272,13 +277,16 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
   // Called when timer hits 0 naturally
   void _finishTimer() async {
     _triggerHaptic(success: true);
-    stopTimer();
+    // FIX for race condition: Pass 'false' so we don't kill the notification
+    stopTimer(cancelNotify: false);
 
     final settingsBox = Hive.box('settings_box');
     bool isSoundEnabled = settingsBox.get('isSoundEnabled', defaultValue: true);
 
     if (isSoundEnabled) {
       try {
+        // Audio Bug FIX: Stop before playing to reset 
+        await _audioPlayer.stop();
         await _audioPlayer.play(AssetSource('sounds/ding.mp3'));
       } catch (e) {
         debugPrint("Error playing sound: $e");
@@ -311,12 +319,12 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
           // Send Instant Warning
           NotificationService().showInstantNotification(
             id: 1, // Different ID so it doesn't override the timer
-            title: "⚠️ STRICT MODE ACTIVE",
-            body: "Your session will fail if you don't return immediately!",
+            title: "⚠️ FOCUS SESSION FAILED",
+            body: "You left the app. Session was cancelled.",
           );
           
           // Fail the session
-          stopTimer();
+          stopTimer(cancelNotify: true);
           _wasStrictlyInterrupted = true;
         } 
       }
@@ -338,7 +346,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
              backgroundColor: bgColor,
              title: Text("Focus Broken 😔", style: TextStyle(color: textColor)),
              content: Text(
-               "Strict Mode is active. You left the app, so the timer was reset.",
+               "Strict Mode is active. You left the app, so the timer was reset to keep you accountable.",
                style: TextStyle(color: textColor),
              ),
              actions: [
