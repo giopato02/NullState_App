@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nullstate/pages/home_page.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:nullstate/models/note.dart';
+import 'package:nullstate/services/notification_service.dart';
 
 void main() async {
   await Hive.initFlutter();
@@ -9,6 +10,8 @@ void main() async {
   await Hive.openBox<Note>('notes_box'); // for notes
   await Hive.openBox('settings_box'); // for settings
   
+  await NotificationService().init();
+
   runApp(const NullStateApp());
 }
 

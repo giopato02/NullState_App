@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:nullstate/services/notification_service.dart';
 
 class FocusPage extends StatefulWidget {
   const FocusPage({super.key});
@@ -192,9 +193,26 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
       totalSeconds = (selectedMinutes * 60).toInt();
       remainingSeconds = totalSeconds;
       _endTime = DateTime.now().add(Duration(seconds: totalSeconds));
-    } else {
-      _endTime = DateTime.now().add(Duration(seconds: remainingSeconds));
-    }
+      
+      // Schedule the notification
+      NotificationService().scheduleNotification(
+      id: 0, // ID 0 for Focus Timer
+      title: isBreakMode ? "Break Over!" : "Focus Complete!",
+      body: isBreakMode ? "Ready to focus again?" : "You did great. Take a break!",
+      seconds: totalSeconds,
+    );
+  } else {
+    // If resuming, schedule for remaining seconds
+    _endTime = DateTime.now().add(Duration(seconds: remainingSeconds));
+
+    // Schedule for remaining time
+    NotificationService().scheduleNotification(
+      id: 0, 
+      title: isBreakMode ? "Break Over!" : "Focus Complete!",
+      body: isBreakMode ? "Ready to focus again?" : "You did great. Take a break.",
+      seconds: remainingSeconds,
+    );
+  }
 
     // STRICT MODE & WAKELOCK LOGIC
     if (!isBreakMode && isStrict) {
@@ -224,7 +242,10 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     _triggerHaptic();
     timer?.cancel();
     _quoteTimer?.cancel();
+    // Disable wakelock
     WakelockPlus.disable();
+    // Cancel notification
+    NotificationService().cancelNotification(0);
     setState(() {
       isRunning = false;
       isPaused = true;
@@ -235,7 +256,10 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     _triggerHaptic(heavy: true);
     timer?.cancel();
     _quoteTimer?.cancel();
+    // Disable wakelock
     WakelockPlus.disable();
+    // Cancel notification
+    NotificationService().cancelNotification(0);
     setState(() {
       isRunning = false;
       isPaused = false;
