@@ -88,9 +88,6 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _loadSettings();
 
-    // Fix for Audio: Set mode to stop so it resets after playing
-    _audioPlayer.setReleaseMode(ReleaseMode.stop);
-
     // Listen for changes in Settings
     // If user changes 'Default Duration' in settings, update the slider immediately
     // only if the timer is NOT running.
@@ -230,6 +227,12 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
 
     timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
+
+      // Don't update UI if app is in background
+      if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+         return; 
+      }
+
       setState(() {
         final now = DateTime.now();
         remainingSeconds = (_endTime!.difference(now).inMilliseconds / 1000)
@@ -249,7 +252,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     // Disable wakelock
     WakelockPlus.disable();
     // Cancel notification
-    NotificationService().cancelNotification(0);
+    NotificationService().cancelNotification(888);
     setState(() {
       isRunning = false;
       isPaused = true;
@@ -264,7 +267,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     WakelockPlus.disable();
     // Cancel notification
     if (cancelNotify) {
-      NotificationService().cancelNotification(0);
+      NotificationService().cancelNotification(888);
     }
     setState(() {
       isRunning = false;
@@ -277,21 +280,18 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
   // Called when timer hits 0 naturally
   void _finishTimer() async {
     _triggerHaptic(success: true);
-    // FIX for race condition: Pass 'false' so we don't kill the notification
     stopTimer(cancelNotify: false);
 
     final settingsBox = Hive.box('settings_box');
-    bool isSoundEnabled = settingsBox.get('isSoundEnabled', defaultValue: true);
+    // bool isSoundEnabled = settingsBox.get('isSoundEnabled', defaultValue: true);
 
-    if (isSoundEnabled) {
-      try {
-        // Audio Bug FIX: Stop before playing to reset 
-        await _audioPlayer.stop();
-        await _audioPlayer.play(AssetSource('sounds/ding.mp3'));
-      } catch (e) {
-        debugPrint("Error playing sound: $e");
-      }
-    }
+    // if (isSoundEnabled) {
+    //   try {
+    //     await _audioPlayer.play(AssetSource('sounds/ding.mp3')); 
+    //   } catch (e) {
+    //     debugPrint("Error playing sound: $e");
+    //   }
+    // }
 
     // CHECK FRICTIONLESS FLOW
     bool autoFlow = settingsBox.get('autoFlow', defaultValue: false);
@@ -311,6 +311,8 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     super.didChangeAppLifecycleState(state);
     final settingsBox = Hive.box('settings_box');
     bool isStrict = settingsBox.get('isStrictMode', defaultValue: false);
+
+    print("📲 LIFECYCLE CHANGED: $state"); // DEBUG PRINT
 
     // PAUSED Logic
     if (state == AppLifecycleState.paused) {
@@ -332,7 +334,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
 
     // RESUMED Logic
     if (state == AppLifecycleState.resumed && _wasStrictlyInterrupted) {
-      NotificationService().cancelNotification(1);
+      NotificationService().cancelNotification(888);
       if (_wasStrictlyInterrupted) {
         _wasStrictlyInterrupted = false;
         bool isDarkMode = settingsBox.get('isDarkMode', defaultValue: false);
