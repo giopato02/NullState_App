@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:nullstate/pages/home_page.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:nullstate/models/note.dart';
@@ -7,6 +8,11 @@ import 'package:nullstate/models/session.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
 
   await Hive.initFlutter();
   await NotificationService().init();
