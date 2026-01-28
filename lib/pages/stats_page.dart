@@ -32,9 +32,19 @@ class _StatsPageState extends State<StatsPage> {
         // 1. Calculate the Data
         // Pass _selectedDate to all functions so they calculate for the correct week
         final weeklyData = _processWeeklyData(box, _selectedDate);
-        final totalFocus = _calculateTotalMinutes(box, isBreak: false, referenceDate: _selectedDate);
-        final totalBreak = _calculateTotalMinutes(box, isBreak: true, referenceDate: _selectedDate);
-        final weekRange = _getWeekRange(_selectedDate); // Gets for example: Jan 1 - Jan 7
+        final totalFocus = _calculateTotalMinutes(
+          box,
+          isBreak: false,
+          referenceDate: _selectedDate,
+        );
+        final totalBreak = _calculateTotalMinutes(
+          box,
+          isBreak: true,
+          referenceDate: _selectedDate,
+        );
+        final weekRange = _getWeekRange(
+          _selectedDate,
+        ); // Gets for example: Jan 1 - Jan 7
 
         return Scaffold(
           backgroundColor:
@@ -43,19 +53,26 @@ class _StatsPageState extends State<StatsPage> {
             elevation: 0,
             centerTitle: true,
             // Bug FIX: white background on the AppBar
-            scrolledUnderElevation: 0, 
+            scrolledUnderElevation: 0,
             surfaceTintColor: Colors.transparent,
             forceMaterialTransparency: true,
 
-            // 1. ℹ️ INFO ICON IN TITLE
+            // 1. INFO ICON IN TITLE
             title: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text("Statistics", style: TextStyle(fontSize: 30, color: Colors.white)),
+                Text(
+                  "Statistics",
+                  style: TextStyle(fontSize: 30, color: Colors.white),
+                ),
                 const SizedBox(width: 8),
                 GestureDetector(
                   onTap: _showInfoDialog,
-                  child: Icon(Icons.info_outline, color: Colors.white.withValues(alpha: 0.6), size: 20),
+                  child: Icon(
+                    Icons.info_outline,
+                    color: Colors.white.withValues(alpha: 0.6),
+                    size: 20,
+                  ),
                 ),
               ],
             ),
@@ -92,58 +109,74 @@ class _StatsPageState extends State<StatsPage> {
                 const SizedBox(height: 30),
 
                 // 3. DATE NAVIGATION HEADER
+                Text(
+                  "Performance • ${_selectedDate.year}", // Updates with the year
+                  style: const TextStyle(color: Colors.white70, fontSize: 18),
+                ),
+                const SizedBox(height: 2), // Small gap between label and date
+                // Date & Arrows Container
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisSize: MainAxisSize.min, // Shrink to fit content
                   children: [
-                    const Text(
-                      "Performance",
-                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                    // The Date Text
+                    Text(
+                      weekRange,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
                     ),
-                    // ARROWS AND DATE
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(20),
+
+                    const SizedBox(width: 8),
+
+                    // Back Arrow
+                    IconButton(
+                      icon: const Icon(
+                        Icons.chevron_left,
+                        color: Colors.white,
+                        size: 30,
                       ),
-                      child: Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.chevron_left, color: Colors.white),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            onPressed: () {
-                              setState(() {
-                                _selectedDate = _selectedDate.subtract(const Duration(days: 7));
-                              });
-                            },
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            weekRange,
-                            style: const TextStyle(
-                              color: Colors.white, 
-                              fontSize: 14, // Smaller font to fit arrows
-                              fontWeight: FontWeight.bold
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            icon: const Icon(Icons.chevron_right, color: Colors.white),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            onPressed: () {
-                              // Don't allow going into future weeks ADD HERE.
-                              setState(() {
-                                _selectedDate = _selectedDate.add(const Duration(days: 7));
-                              });
-                            },
-                          ),
-                        ],
+                      padding: EdgeInsets.zero,
+                      constraints:
+                          const BoxConstraints(), // Removes default padding
+                      visualDensity:
+                          VisualDensity.compact, // Reduces extra whitespace
+                      onPressed: () {
+                        setState(() {
+                          _selectedDate = _selectedDate.subtract(
+                            const Duration(days: 7),
+                          );
+                        });
+                      },
+                    ),
+
+                    const SizedBox(width: 1),
+
+                    // Forward Arrow
+                    IconButton(
+                      icon: const Icon(
+                        Icons.chevron_right,
+                        color: Colors.white,
+                        size: 30,
                       ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () {
+                        setState(() {
+                          _selectedDate = _selectedDate.add(
+                            const Duration(days: 7),
+                          );
+                        });
+                      },
                     ),
                   ],
                 ),
+
+                // Spacer to prevent collision with Chart
+                const SizedBox(height: 15),
 
                 // 4. The Bar Chart
                 Expanded(
@@ -272,6 +305,37 @@ class _StatsPageState extends State<StatsPage> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 20),
+
+                // 5. DAILY AVERAGE (Footer)
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.show_chart, color: Colors.white70, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          "Daily Average:  ${(totalFocus / 7).round()}m",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                
+                // Push everything slightly up from the very bottom edge
+                const SizedBox(height: 40),
                 const Spacer(),
               ],
             ),
@@ -288,7 +352,10 @@ class _StatsPageState extends State<StatsPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.grey[900],
-        title: const Text("Tracking Rules", style: TextStyle(color: Colors.white)),
+        title: const Text(
+          "Tracking Rules",
+          style: TextStyle(color: Colors.white),
+        ),
         content: const Text(
           "1. Only FULLY COMPLETED sessions are recorded.\n"
           "2. If you stop a timer early, it will NOT count towards your stats.\n"
@@ -387,12 +454,22 @@ class _StatsPageState extends State<StatsPage> {
 
   // ---------------- DATA LOGIC ---------------- //
 
-  int _calculateTotalMinutes(Box<Session> box, {required bool isBreak, required DateTime referenceDate}) {
+  int _calculateTotalMinutes(
+    Box<Session> box, {
+    required bool isBreak,
+    required DateTime referenceDate,
+  }) {
     // 1. Determine start/end of the requested week
-    final startOfWeek = referenceDate.subtract(Duration(days: referenceDate.weekday - 1));
+    final startOfWeek = referenceDate.subtract(
+      Duration(days: referenceDate.weekday - 1),
+    );
     final endOfWeek = startOfWeek.add(const Duration(days: 7));
     // Normalize to midnight to avoid hour mismatches
-    final start = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+    final start = DateTime(
+      startOfWeek.year,
+      startOfWeek.month,
+      startOfWeek.day,
+    );
     final end = DateTime(endOfWeek.year, endOfWeek.month, endOfWeek.day);
 
     int total = 0;
@@ -406,22 +483,36 @@ class _StatsPageState extends State<StatsPage> {
     return total;
   }
 
-  List<Map<String, int>> _processWeeklyData(Box<Session> box, DateTime referenceDate) {
-    List<Map<String, int>> weekData = List.generate(7, (_) => {'focus': 0, 'break': 0});
-    
-    final startOfWeek = referenceDate.subtract(Duration(days: referenceDate.weekday - 1));
+  List<Map<String, int>> _processWeeklyData(
+    Box<Session> box,
+    DateTime referenceDate,
+  ) {
+    List<Map<String, int>> weekData = List.generate(
+      7,
+      (_) => {'focus': 0, 'break': 0},
+    );
+
+    final startOfWeek = referenceDate.subtract(
+      Duration(days: referenceDate.weekday - 1),
+    );
     final endOfWeek = startOfWeek.add(const Duration(days: 7));
     // Normalize
-    final start = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+    final start = DateTime(
+      startOfWeek.year,
+      startOfWeek.month,
+      startOfWeek.day,
+    );
     final end = DateTime(endOfWeek.year, endOfWeek.month, endOfWeek.day);
 
     for (var session in box.values) {
       if (session.date.isAfter(start) && session.date.isBefore(end)) {
         int dayIndex = session.date.weekday - 1;
         if (session.isBreak) {
-          weekData[dayIndex]['break'] = weekData[dayIndex]['break']! + session.durationMinutes;
+          weekData[dayIndex]['break'] =
+              weekData[dayIndex]['break']! + session.durationMinutes;
         } else {
-          weekData[dayIndex]['focus'] = weekData[dayIndex]['focus']! + session.durationMinutes;
+          weekData[dayIndex]['focus'] =
+              weekData[dayIndex]['focus']! + session.durationMinutes;
         }
       }
     }
@@ -434,23 +525,27 @@ class _StatsPageState extends State<StatsPage> {
     await box.clear();
 
     final r = Random();
-    
+
     // 1. Calculate the start of the CURRENTLY VIEWED week
-    final startOfWeek = _selectedDate.subtract(Duration(days: _selectedDate.weekday - 1));
+    final startOfWeek = _selectedDate.subtract(
+      Duration(days: _selectedDate.weekday - 1),
+    );
 
     // 2. Generate sessions relative to that start date
     for (int i = 0; i < 15; i++) {
       // Add random days (0-6) to the start of the week
-      final date = startOfWeek.add(Duration(days: r.nextInt(7), hours: r.nextInt(20)));
-      
-      final isBreak = r.nextBool(); 
+      final date = startOfWeek.add(
+        Duration(days: r.nextInt(7), hours: r.nextInt(20)),
+      );
+
+      final isBreak = r.nextBool();
       final duration = isBreak ? r.nextInt(15) + 5 : r.nextInt(45) + 15;
 
       await box.add(
         Session(date: date, durationMinutes: duration, isBreak: isBreak),
       );
     }
-    
+
     // 3. Force the UI to refresh to show the new bars
     setState(() {});
   }
