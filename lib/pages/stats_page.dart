@@ -116,7 +116,7 @@ class _StatsPageState extends State<StatsPage> {
                 const SizedBox(height: 2), // Small gap between label and date
                 // Date & Arrows Container
                 Row(
-                  mainAxisSize: MainAxisSize.min, // Shrink to fit content
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // The Date Text
                     Text(
@@ -172,9 +172,14 @@ class _StatsPageState extends State<StatsPage> {
                         });
                       },
                     ),
+                    // pushes streak icon to the right
+                    const Spacer(),
+
+                    // calculates the streak inside the build
+                    FlickeringFire(streak: _calculateStreak(box)),
                   ],
                 ),
-
+                
                 // Spacer to prevent collision with Chart
                 const SizedBox(height: 15),
 
@@ -519,6 +524,52 @@ class _StatsPageState extends State<StatsPage> {
     return weekData;
   }
 
+  // STREAK LOGIC
+  int _calculateStreak(Box<Session> box) {
+    // 1. Get all unique dates where user FOCUSED
+    final focusDates = <String>{};
+    for (var session in box.values) {
+      if (!session.isBreak && session.durationMinutes > 0) {
+        // Format as yyyy-MM-dd to ignore time
+        focusDates.add(DateFormat('yyyy-MM-dd').format(session.date));
+      }
+    }
+
+    // 2. Count backwards from Today
+    int streak = 0;
+    final today = DateTime.now();
+    final todayStr = DateFormat('yyyy-MM-dd').format(today);
+    final yesterdayStr = DateFormat('yyyy-MM-dd').format(today.subtract(const Duration(days: 1)));
+
+    // If we focused today, start counting from today. 
+    // If not, check if we focused yesterday (streak is still alive).
+    DateTime currentCheck;
+    
+    if (focusDates.contains(todayStr)) {
+      streak++;
+      currentCheck = today.subtract(const Duration(days: 1));
+    } else if (focusDates.contains(yesterdayStr)) {
+      // Streak is alive based on yesterday, but we haven't done today yet
+      currentCheck = today.subtract(const Duration(days: 1));
+    } else {
+      // No focus today OR yesterday? Streak is dead. :(
+      return 0;
+    }
+
+    // 3. Loop backwards
+    while (true) {
+      final checkStr = DateFormat('yyyy-MM-dd').format(currentCheck);
+      if (focusDates.contains(checkStr)) {
+        streak++;
+        currentCheck = currentCheck.subtract(const Duration(days: 1));
+      } else {
+        break; // Streak broken
+      }
+    }
+
+    return streak;
+  }
+
   // ---------------- MOCK DATA ---------------- //
   void _generateMockData(Box<Session> box) async {
     // Clear old data first
@@ -548,5 +599,90 @@ class _StatsPageState extends State<StatsPage> {
 
     // 3. Force the UI to refresh to show the new bars
     setState(() {});
+  }
+}
+
+// ---------------- ANIMATED STREAK ICON ---------------- //
+class FlickeringFire extends StatefulWidget {
+  final int streak;
+  const FlickeringFire({super.key, required this.streak});
+
+  @override
+  State<FlickeringFire> createState() => _FlickeringFireState();
+}
+
+class _FlickeringFireState extends State<FlickeringFire> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _opacityAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..repeat(reverse: true); // Pulse effect
+
+    _opacityAnim = Tween<double>(begin: 0.6, end: 1.0).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // If streak is 0, show Cold static icon
+    if (widget.streak == 0) {
+      return Row(
+        children: [
+          Icon(
+            Icons.local_fire_department_sharp, 
+            color: Colors.grey.withValues(alpha: 0.3), size: 28
+          ),
+          const SizedBox(width: 4),
+          Text(
+            "0", 
+            style: TextStyle(
+              color: Colors.grey.withValues(alpha: 0.5), 
+              fontWeight: FontWeight.bold, 
+              fontSize: 18)
+            ),
+        ],
+      );
+    }
+
+    // If streak > 0, show Animated Fire
+    return Row(
+      children: [
+        AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Opacity(
+              opacity: _opacityAnim.value,
+              child: Icon(
+                Icons.local_fire_department,
+                color: Colors.orangeAccent, // Fire color
+                size: 30 + (_controller.value * 2), // Subtle size pulse
+                shadows: [
+                  BoxShadow(
+                    color: Colors.orange.withValues(alpha: 0.6),
+                    blurRadius: 10 + (_controller.value * 10), // Glow effect
+                    spreadRadius: 2,
+                  )
+                ],
+              ),
+            );
+          },
+        ),
+        const SizedBox(width: 6),
+        Text(
+          "${widget.streak}",
+          style: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold, fontSize: 20),
+        ),
+      ],
+    );
   }
 }
