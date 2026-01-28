@@ -37,6 +37,8 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
   int _lastQuoteIndex = -1;
 
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final AudioPlayer _sfxPlayer = AudioPlayer();
+  final AudioPlayer _bgmPlayer = AudioPlayer();
   final List<String> _breakQuotes = [
     "Breathe in... Breathe out...",
     "Look at something 20 feet away",
@@ -116,6 +118,8 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     timer?.cancel();
     _quoteTimer?.cancel();
     _audioPlayer.dispose();
+    _sfxPlayer.dispose();
+    _bgmPlayer.dispose();
     super.dispose();
   }
 
@@ -165,6 +169,29 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     }
   }
 
+  // Play Completion Sound
+  void _playCompletionSound() async {
+    final settingsBox = Hive.box('settings_box');
+    if (settingsBox.get('isSoundEnabled', defaultValue: true)) {
+      await _sfxPlayer.play(AssetSource('sounds/ding.mp3'));
+    }
+  }
+
+  // Manage White Noise
+  void _manageWhiteNoise({required bool play}) async {
+    final settingsBox = Hive.box('settings_box');
+    bool whiteNoiseEnabled = settingsBox.get('whiteNoise', defaultValue: false);
+
+    if (play && whiteNoiseEnabled) {
+      // Loop the white noise forever
+      await _bgmPlayer.setReleaseMode(ReleaseMode.loop);
+      await _bgmPlayer.play(AssetSource('sounds/white_noise.mp3'));
+    } else {
+      // Stop immediately
+      await _bgmPlayer.stop();
+    }
+  }
+
   void _toggleMode(bool toBreak) {
     if (isRunning || isPaused) return;
 
@@ -187,6 +214,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
 
     setState(() {
       isRunning = true;
+      _manageWhiteNoise(play: true);
       isPaused = false;
     });
 
@@ -256,6 +284,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     NotificationService().cancelNotification(888);
     setState(() {
       isRunning = false;
+      _manageWhiteNoise(play: false);
       isPaused = true;
     });
   }
@@ -272,13 +301,14 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     }
     setState(() {
       isRunning = false;
+      _manageWhiteNoise(play: false);
       isPaused = false;
       remainingSeconds = 0;
       _endTime = null;
     });
   }
 
-  // 💾 SAVES DATA TO HIVE
+  // SAVES DATA TO HIVE
   void _saveSessionToDatabase() {
     final sessionBox = Hive.box<Session>('session_box');
 
@@ -301,6 +331,8 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
   void _finishTimer() async {
     _saveSessionToDatabase();
     _triggerHaptic(success: true);
+    _playCompletionSound();
+    _manageWhiteNoise(play: false);
     stopTimer(cancelNotify: false);
 
     final settingsBox = Hive.box('settings_box');

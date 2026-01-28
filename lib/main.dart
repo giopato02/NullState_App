@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:nullstate/pages/home_page.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:nullstate/models/note.dart';
-import 'package:nullstate/pages/stats_page.dart';
 import 'package:nullstate/services/notification_service.dart';
 import 'package:nullstate/models/session.dart';
 

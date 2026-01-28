@@ -179,7 +179,7 @@ class _StatsPageState extends State<StatsPage> {
                     FlickeringFire(streak: _calculateStreak(box)),
                   ],
                 ),
-                
+
                 // Spacer to prevent collision with Chart
                 const SizedBox(height: 15),
 
@@ -224,8 +224,8 @@ class _StatsPageState extends State<StatsPage> {
                           leftTitles: AxisTitles(
                             sideTitles: SideTitles(
                               showTitles: true,
-                              reservedSize:
-                                  55, // Increased slightly to fit "1h 20m"
+                              reservedSize: 55, 
+                              interval: 30,
                               getTitlesWidget: (value, meta) {
                                 if (value == 0) return const SizedBox();
 
@@ -315,16 +315,25 @@ class _StatsPageState extends State<StatsPage> {
                 // 5. DAILY AVERAGE (Footer)
                 Center(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(30),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.show_chart, color: Colors.white70, size: 20),
+                        const Icon(
+                          Icons.show_chart,
+                          color: Colors.white70,
+                          size: 20,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           "Daily Average:  ${(totalFocus / 7).round()}m",
@@ -338,7 +347,7 @@ class _StatsPageState extends State<StatsPage> {
                     ),
                   ),
                 ),
-                
+
                 // Push everything slightly up from the very bottom edge
                 const SizedBox(height: 40),
                 const Spacer(),
@@ -353,19 +362,26 @@ class _StatsPageState extends State<StatsPage> {
   // ---------------- UI HELPERS---------------- //
 
   void _showInfoDialog() {
+    bool isDarkMode = Hive.box(
+      'settings_box',
+    ).get('isDarkMode', defaultValue: false);
+
+    // Define colors based on theme
+    Color bgColor = isDarkMode ? Colors.grey[900]! : Colors.white;
+    Color textColor = isDarkMode ? Colors.white : Colors.black87;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: const Text(
+        backgroundColor: bgColor,
+        title: Text(
           "Tracking Rules",
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: textColor),
         ),
-        content: const Text(
+        content: Text(
           "1. Only FULLY COMPLETED sessions are recorded.\n"
           "2. If you stop a timer early, it will NOT count towards your stats.\n"
           "3. Strict Mode failures are not recorded.",
-          style: TextStyle(color: Colors.white70),
+          style: TextStyle(color: textColor.withValues(alpha: 0.8)),
         ),
         actions: [
           TextButton(
@@ -539,12 +555,14 @@ class _StatsPageState extends State<StatsPage> {
     int streak = 0;
     final today = DateTime.now();
     final todayStr = DateFormat('yyyy-MM-dd').format(today);
-    final yesterdayStr = DateFormat('yyyy-MM-dd').format(today.subtract(const Duration(days: 1)));
+    final yesterdayStr = DateFormat(
+      'yyyy-MM-dd',
+    ).format(today.subtract(const Duration(days: 1)));
 
-    // If we focused today, start counting from today. 
+    // If we focused today, start counting from today.
     // If not, check if we focused yesterday (streak is still alive).
     DateTime currentCheck;
-    
+
     if (focusDates.contains(todayStr)) {
       streak++;
       currentCheck = today.subtract(const Duration(days: 1));
@@ -611,7 +629,8 @@ class FlickeringFire extends StatefulWidget {
   State<FlickeringFire> createState() => _FlickeringFireState();
 }
 
-class _FlickeringFireState extends State<FlickeringFire> with SingleTickerProviderStateMixin {
+class _FlickeringFireState extends State<FlickeringFire>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _opacityAnim;
 
@@ -639,17 +658,19 @@ class _FlickeringFireState extends State<FlickeringFire> with SingleTickerProvid
       return Row(
         children: [
           Icon(
-            Icons.local_fire_department_sharp, 
-            color: Colors.grey.withValues(alpha: 0.3), size: 28
+            Icons.local_fire_department_sharp,
+            color: Colors.grey.withValues(alpha: 0.3),
+            size: 28,
           ),
           const SizedBox(width: 4),
           Text(
-            "0", 
+            "0",
             style: TextStyle(
-              color: Colors.grey.withValues(alpha: 0.5), 
-              fontWeight: FontWeight.bold, 
-              fontSize: 18)
+              color: Colors.grey.withValues(alpha: 0.5),
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
             ),
+          ),
         ],
       );
     }
@@ -671,7 +692,7 @@ class _FlickeringFireState extends State<FlickeringFire> with SingleTickerProvid
                     color: Colors.orange.withValues(alpha: 0.6),
                     blurRadius: 10 + (_controller.value * 10), // Glow effect
                     spreadRadius: 2,
-                  )
+                  ),
                 ],
               ),
             );
@@ -680,7 +701,11 @@ class _FlickeringFireState extends State<FlickeringFire> with SingleTickerProvid
         const SizedBox(width: 6),
         Text(
           "${widget.streak}",
-          style: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold, fontSize: 20),
+          style: const TextStyle(
+            color: Colors.orangeAccent,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
         ),
       ],
     );

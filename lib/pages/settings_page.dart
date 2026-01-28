@@ -17,6 +17,7 @@ class _SettingsPageState extends State<SettingsPage> {
   late bool _autoFlow;
   late bool _isDarkMode;
   late bool _isSoundEnabled;
+  late bool _whiteNoise;
 
   @override
   void initState() {
@@ -27,13 +28,14 @@ class _SettingsPageState extends State<SettingsPage> {
     _autoFlow = _settingsBox.get('autoFlow', defaultValue: false);
     _isDarkMode = _settingsBox.get('isDarkMode', defaultValue: false);
     _isSoundEnabled = _settingsBox.get('isSoundEnabled', defaultValue: true);
+    _whiteNoise = _settingsBox.get('whiteNoise', defaultValue: false);
   }
 
   // Function to open Email
   Future<void> _launchEmail() async {
     final Uri emailLaunchUri = Uri(
       scheme: 'mailto',
-      path: 'nullstate.co@gmail.com', // Change this to the actual email later
+      path: 'nullstate.co@gmail.com', // CHANGE LATER
       query: 'subject=NullState Feedback', 
     );
 
@@ -283,6 +285,22 @@ void _showDurationInfo() {
                   });
                 },
               ),
+              // Setting 6: White Noise
+              SwitchListTile(
+                title: Text("White Noise", style: TextStyle(color: textColor)),
+                  subtitle: const Text("Play background static while focusing", 
+                  style: TextStyle(color: Colors.grey)
+                ),
+                secondary: Icon(Icons.waves, color: iconColor),
+                activeThumbColor: Colors.blue,
+                value: _whiteNoise,
+                onChanged: (val) {
+                  setState(() {
+                    _whiteNoise = val;
+                    _settingsBox.put('whiteNoise', val);
+                  });
+                },
+              ),
 
               Divider(height: 40, color: dividerColor),
 
@@ -294,7 +312,7 @@ void _showDurationInfo() {
               ),
               const SizedBox(height: 10),
 
-              // Setting 6: Feedback
+              // Setting 7: Feedback
               ListTile(
                 leading: Icon(Icons.mail_outline, color: iconColor),
                 title: Text("Get in Touch", style: TextStyle(color: textColor)),
@@ -302,7 +320,7 @@ void _showDurationInfo() {
                 onTap: _launchEmail,
               ),
 
-              // Setting 7: Donation
+              // Setting 8: Donation
               ListTile(
                 leading: Icon(Icons.coffee_outlined, color: iconColor),
                 title: Text("Support Development", style: TextStyle(color: textColor)),
