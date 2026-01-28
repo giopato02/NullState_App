@@ -1,4 +1,4 @@
-import 'dart:math';
+// import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -76,14 +76,14 @@ class _StatsPageState extends State<StatsPage> {
                 ),
               ],
             ),
-            actions: [
-              // DEBUG BUTTON: when clicked, fills chart with fake data
-              IconButton(
-                icon: const Icon(Icons.bug_report, color: Colors.white54),
-                onPressed: () => _generateMockData(box),
-                tooltip: "Generate Fake Data",
-              ),
-            ],
+            // actions: [
+            //   // DEBUG BUTTON: when clicked, fills chart with fake data
+            //   IconButton(
+            //     icon: const Icon(Icons.bug_report, color: Colors.white54),
+            //     onPressed: () => _generateMockData(box),
+            //     tooltip: "Generate Fake Data",
+            //   ),
+            // ],
           ),
           body: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -589,35 +589,35 @@ class _StatsPageState extends State<StatsPage> {
   }
 
   // ---------------- MOCK DATA ---------------- //
-  void _generateMockData(Box<Session> box) async {
-    // Clear old data first
-    await box.clear();
+  // void _generateMockData(Box<Session> box) async {
+  //   // Clear old data first
+  //   await box.clear();
 
-    final r = Random();
+  //   final r = Random();
 
-    // 1. Calculate the start of the CURRENTLY VIEWED week
-    final startOfWeek = _selectedDate.subtract(
-      Duration(days: _selectedDate.weekday - 1),
-    );
+  //   // 1. Calculate the start of the CURRENTLY VIEWED week
+  //   final startOfWeek = _selectedDate.subtract(
+  //     Duration(days: _selectedDate.weekday - 1),
+  //   );
 
-    // 2. Generate sessions relative to that start date
-    for (int i = 0; i < 15; i++) {
-      // Add random days (0-6) to the start of the week
-      final date = startOfWeek.add(
-        Duration(days: r.nextInt(7), hours: r.nextInt(20)),
-      );
+  //   // 2. Generate sessions relative to that start date
+  //   for (int i = 0; i < 15; i++) {
+  //     // Add random days (0-6) to the start of the week
+  //     final date = startOfWeek.add(
+  //       Duration(days: r.nextInt(7), hours: r.nextInt(20)),
+  //     );
 
-      final isBreak = r.nextBool();
-      final duration = isBreak ? r.nextInt(15) + 5 : r.nextInt(45) + 15;
+  //     final isBreak = r.nextBool();
+  //     final duration = isBreak ? r.nextInt(15) + 5 : r.nextInt(45) + 15;
 
-      await box.add(
-        Session(date: date, durationMinutes: duration, isBreak: isBreak),
-      );
-    }
+  //     await box.add(
+  //       Session(date: date, durationMinutes: duration, isBreak: isBreak),
+  //     );
+  //   }
 
-    // 3. Force the UI to refresh to show the new bars
-    setState(() {});
-  }
+  //   // 3. Force the UI to refresh to show the new bars
+  //   setState(() {});
+  // }
 }
 
 // ---------------- ANIMATED STREAK ICON ---------------- //
