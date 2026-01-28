@@ -22,91 +22,105 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // Wrap the Scaffold in ValueListenableBuilder for dark mode
-    // This makes the whole app background react to the switch instantly.
     return ValueListenableBuilder(
       valueListenable: Hive.box('settings_box').listenable(),
       builder: (context, Box box, widget) {
         
-        // Read the setting
         bool isDarkMode = box.get('isDarkMode', defaultValue: false);
 
-        return Scaffold(
-          // BACKGROUND LOGIC
-          backgroundColor: isDarkMode ? const Color.fromARGB(255, 5, 29, 70) : Colors.blue[200],
-          
-          extendBodyBehindAppBar: true,
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            actions: [
-              Padding(
-                padding: const EdgeInsets.only(right: 20.0),
-                child: IconButton(
-                  icon: const Icon(Icons.settings, color: Colors.white, size: 30),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const SettingsPage()),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+        // 1. POLISH: Gradient Backgrounds
+        // Light Mode: Soft Blue -> White (Calm, Airy)
+        // Dark Mode: Deep Navy -> Black (Night mode, Focus)
+        final Gradient backgroundGradient = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: isDarkMode 
+              ? [const Color(0xFF0F2027), const Color(0xFF203A43), const Color(0xFF2C5364)] // "Moonlit Asteroid"
+              : [Colors.blue[200]!, Colors.blue[50]!], // Soft Cloud
+        );
 
-          extendBody: true,
+        return Container(
+          decoration: BoxDecoration(gradient: backgroundGradient),
+          child: Scaffold(
+            backgroundColor: Colors.transparent, // Let gradient show through
+            extendBodyBehindAppBar: true,
+            extendBody: true, // Navigation bar floats over content
 
-          body: IndexedStack(
-            index: currentPage,
-            children: pages,
-          ),
-
-          bottomNavigationBar: NavigationBarTheme(
-            data: NavigationBarThemeData(
-              labelTextStyle: WidgetStateProperty.resolveWith((states) {
-                // If selected, use Blue. If not, use White (Dark Mode) or Black (Light Mode)
-                return TextStyle(
-                  color: states.contains(WidgetState.selected)
-                      ? Colors.blue
-                      : (isDarkMode ? Colors.white70 : Colors.black54),
-                  fontWeight: FontWeight.bold,
-                );
-              }),
-            ),
-            child: NavigationBar(
-              backgroundColor: isDarkMode 
-                  ? const Color(0xFF1E1E1E).withValues(alpha: 0.9) 
-                  : Colors.white.withValues(alpha: 0.5),
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
               elevation: 0,
-              indicatorColor: isDarkMode 
-                  ? Colors.grey[800] 
-                  : Colors.white,
-              
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.timer_outlined),
-                  selectedIcon: Icon(Icons.timer, color: Colors.blue),
-                  label: 'Focus',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.menu_book_outlined),
-                  selectedIcon: Icon(Icons.menu_book_outlined, color: Colors.blue),
-                  label: 'Journal',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.bar_chart_rounded),
-                  selectedIcon: Icon(Icons.bar_chart_rounded, color: Colors.blue),
-                  label: 'Stats',
-                ),
-              ],
-              onDestinationSelected: (int index) {
-                setState(() {
-                  currentPage = index;
-                });
-              },
-              selectedIndex: currentPage,
+              // 2. POLISH: Only show Settings on the Focus Page (Index 0)
+              // This prevents it from cluttering the Stats/Journal headers
+              actions: currentPage == 0 
+                ? [
+                    Padding(
+                      padding: const EdgeInsets.only(right: 20.0),
+                      child: IconButton(
+                        icon: const Icon(Icons.settings, color: Colors.white, size: 30),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const SettingsPage()),
+                          );
+                        },
+                      ),
+                    ),
+                  ]
+                : [], // Hide on other pages
+            ),
+
+            body: IndexedStack(
+              index: currentPage,
+              children: pages,
+            ),
+
+            bottomNavigationBar: NavigationBarTheme(
+              data: NavigationBarThemeData(
+                labelTextStyle: WidgetStateProperty.resolveWith((states) {
+                  return TextStyle(
+                    color: states.contains(WidgetState.selected)
+                        ? Colors.blue
+                        : (isDarkMode ? Colors.white70 : Colors.black54),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  );
+                }),
+              ),
+              child: NavigationBar(
+                height: 70, // Slightly shorter for a sleeker look
+                backgroundColor: isDarkMode 
+                    ? const Color(0xFF1E1E1E).withValues(alpha: 0.85) // Slight transparency
+                    : Colors.white.withValues(alpha: 0.85),
+                elevation: 0,
+                indicatorColor: isDarkMode 
+                    ? Colors.blue.withValues(alpha: 0.2) // Subtle glow in dark mode
+                    : Colors.blue[100],
+                
+                destinations: const [
+                  NavigationDestination(
+                    icon: Icon(Icons.timer_outlined),
+                    selectedIcon: Icon(Icons.timer, color: Colors.blue),
+                    label: 'Focus',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.menu_book_outlined),
+                    selectedIcon: Icon(Icons.menu_book, color: Colors.blue),
+                    label: 'Journal',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.bar_chart_rounded),
+                    selectedIcon: Icon(Icons.bar_chart, color: Colors.blue),
+                    label: 'Stats',
+                  ),
+                ],
+                onDestinationSelected: (int index) {
+                  setState(() {
+                    currentPage = index;
+                  });
+                },
+                selectedIndex: currentPage,
+              ),
             ),
           ),
         );
