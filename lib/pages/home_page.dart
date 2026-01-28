@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:nullstate/pages/focus_page.dart';
 import 'package:nullstate/pages/journal_page.dart';
 import 'package:nullstate/pages/settings_page.dart';
+import 'package:nullstate/pages/stats_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -16,6 +17,7 @@ class _HomePageState extends State<HomePage> {
   List<Widget> pages = [
     const FocusPage(),
     const JournalPage(),
+    const StatsPage(),
   ];
 
   @override
@@ -92,6 +94,11 @@ class _HomePageState extends State<HomePage> {
                   icon: Icon(Icons.menu_book_outlined),
                   selectedIcon: Icon(Icons.menu_book_outlined, color: Colors.blue),
                   label: 'Journal',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.bar_chart_rounded),
+                  selectedIcon: Icon(Icons.bar_chart_rounded, color: Colors.blue),
+                  label: 'Stats',
                 ),
               ],
               onDestinationSelected: (int index) {
