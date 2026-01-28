@@ -240,6 +240,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
         bool success = await FlutterBackground.initialize(androidConfig: androidConfig);
         if (success) {
           await FlutterBackground.enableBackgroundExecution();
+          // added emojis for better visibility in the logs
           print("✅ Android Background Service Started");
         }
       } catch (e) {
@@ -488,29 +489,36 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
       builder: (context, Box box, widget) {
         bool isDarkMode = box.get('isDarkMode', defaultValue: false);
 
-        // Determine Background Color
-        Color? bgColor;
-        if (isBreakMode) {
-          bgColor = isDarkMode ? Colors.green[900] : Colors.green[200];
-        } else {
-          // Transparent allows the HomePage Navy/Blue to show through
-          bgColor = Colors.transparent;
-        }
+        // 1. Define the Green Gradient (Break Mode)
+        final Gradient breakGradient = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: isDarkMode 
+              ? [const Color(0xFF145A32), const Color(0xFF0B1E15)] // Dark Forest
+              : [Colors.green[200]!, Colors.green[50]!], // Soft Mint
+        );
 
-        // Define The Palette, Minimize White
-        // Light Mode = Pure White elements
-        // Dark Mode = Soft Blue elements (blue[100]) to reduce glare
+        // 2. Define the Transparent Gradient (Focus Mode)
+        // We must use a Gradient here too, or AnimatedContainer won't fade smoothly!
+        const Gradient focusGradient = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.transparent, Colors.transparent],
+        );
+
+        // 3. Select the decoration based on mode
+        final BoxDecoration bgDecoration = BoxDecoration(
+          gradient: isBreakMode ? breakGradient : focusGradient,
+        );
+
+        // Palette Logic (Kept exactly the same)
         Color foregroundColor = isDarkMode ? Colors.blue[100]! : Colors.white;
         Color timerRingColor = isDarkMode ? Colors.blue[200]! : Colors.white;
-        // The track behind the timer: Dark shadow in Dark Mode, White ghost in Light Mode
         Color timerTrackColor = isDarkMode
             ? Colors.black.withValues(alpha: 0.3)
             : Colors.white.withValues(alpha: 0.3);
 
-        // Button Styling
-        Color btnColor = isDarkMode
-            ? const Color(0xFF1E1E1E)
-            : Colors.white; // Dark Grey vs White
+        Color btnColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white; 
         Color btnTextColor = isDarkMode ? Colors.blue[100]! : Colors.blue;
 
         if (isBreakMode && !isDarkMode) btnTextColor = Colors.green;
@@ -518,14 +526,13 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
         return AnimatedContainer(
           duration: const Duration(milliseconds: 800),
           curve: Curves.easeInOut,
-          color: bgColor,
+          decoration: bgDecoration, // Now smooths between two gradients
           child: Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.only(top: 60, bottom: 150),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // 1. MODE TOGGLE
                   Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
