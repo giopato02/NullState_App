@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:nullstate/models/note.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:nullstate/pages/note_editor_page.dart';
@@ -17,8 +18,15 @@ class _JournalPageState extends State<JournalPage> {
   bool isSelectionMode = false;
   Set<String> selectedIds = {}; // Stores the IDs of selected notes
 
+  void _triggerHaptic() {
+    // We check settings_box manually here or 
+    // just assume true for UI interactions like long-press
+    HapticFeedback.lightImpact();
+  }
+
   // 1. Toggle Selection Mode ON/OFF
   void _toggleSelectionMode(bool active) {
+    _triggerHaptic();
     setState(() {
       isSelectionMode = active;
       if (!active) {
@@ -29,6 +37,7 @@ class _JournalPageState extends State<JournalPage> {
 
   // 2. Toggle a single note's selection
   void _toggleNoteSelection(String id) {
+    _triggerHaptic();
     setState(() {
       if (selectedIds.contains(id)) {
         selectedIds.remove(id);
@@ -44,6 +53,7 @@ class _JournalPageState extends State<JournalPage> {
 
   // 3. Select/Deselect All Logic
   void _toggleSelectAll(List<Note> allNotes) {
+    _triggerHaptic();
     setState(() {
       if (selectedIds.length == allNotes.length) {
         selectedIds.clear(); // Uncheck all
@@ -55,6 +65,7 @@ class _JournalPageState extends State<JournalPage> {
 
   // 4. Batch Delete Function
   void _deleteSelectedNotes() {
+    HapticFeedback.mediumImpact();
     // Convert IDs to a list of Note objects to delete
     final notesToDelete = _myBox.values
         .where((note) => selectedIds.contains(note.id))
@@ -69,6 +80,7 @@ class _JournalPageState extends State<JournalPage> {
 
   // 5. Create Blank Note (Only when NOT in selection mode)
   void _createNewNote() {
+    _triggerHaptic();
     final newNote = Note(
       id: DateTime.now().toString(),
       title: '',
@@ -235,7 +247,7 @@ class _JournalPageState extends State<JournalPage> {
                       );
                     },
                   ),
-                  const SizedBox(height: 80),
+                  const SizedBox(height: 120),
                 ],
               ),
             ),
@@ -245,18 +257,17 @@ class _JournalPageState extends State<JournalPage> {
     );
   }
 
-  // ADDED: bool isDarkMode parameter to the function definition
   Widget _buildNoteCard(Note note, bool isDarkMode) {
     // Check if this specific note is selected
     bool isSelected = selectedIds.contains(note.id);
 
     // Now this works because isDarkMode is passed in as an argument
     Color cardColor = isDarkMode 
-        ? Colors.grey[800]! 
-        : Colors.white.withValues(alpha: 0.9);
+        ? Colors.grey[850]! 
+        : Colors.white.withValues(alpha: 0.95);
         
-    Color titleColor = isDarkMode ? Colors.white : Colors.black;
-    Color contentColor = isDarkMode ? Colors.grey[300]! : Colors.black54;
+    Color titleColor = isDarkMode ? Colors.white : Colors.black87;
+    Color contentColor = isDarkMode ? Colors.grey[400]! : Colors.black54;
 
     return Material(
       color: cardColor, // Use the variable
@@ -332,18 +343,30 @@ class _JournalPageState extends State<JournalPage> {
 
           // The Selection Circle (Top Left Corner of Note)
           if (isSelectionMode)
-            Positioned(
-              top: 10,
-              left: 10,
-              child: IgnorePointer(
-                // Lets clicks pass through to the InkWell
-                child: Icon(
-                  isSelected ? Icons.check_circle : Icons.circle_outlined,
-                  color: isSelected ? Colors.blue : Colors.grey[400],
-                  size: 24,
+              Positioned(
+                top: 10,
+                right: 10, // Moved to Right for cleaner look
+                child: IgnorePointer(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isSelected ? Colors.blue : Colors.transparent,
+                      border: Border.all(
+                        color: isSelected ? Colors.blue : Colors.grey[400]!,
+                        width: 2
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(2.0),
+                      child: Icon(
+                        Icons.check,
+                        color: isSelected ? Colors.white : Colors.transparent,
+                        size: 14,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
         ],
       ),
     );

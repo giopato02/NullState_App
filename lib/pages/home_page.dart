@@ -49,6 +49,9 @@ class _HomePageState extends State<HomePage> {
             appBar: AppBar(
               backgroundColor: Colors.transparent,
               elevation: 0,
+              // Bug FIX
+              scrolledUnderElevation: 0, 
+              forceMaterialTransparency: true,
               // 2. POLISH: Only show Settings on the Focus Page (Index 0)
               // This prevents it from cluttering the Stats/Journal headers
               actions: currentPage == 0 
