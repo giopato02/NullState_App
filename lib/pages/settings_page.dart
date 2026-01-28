@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -29,6 +30,12 @@ class _SettingsPageState extends State<SettingsPage> {
     _isDarkMode = _settingsBox.get('isDarkMode', defaultValue: false);
     _isSoundEnabled = _settingsBox.get('isSoundEnabled', defaultValue: true);
     _whiteNoise = _settingsBox.get('whiteNoise', defaultValue: false);
+  }
+
+  void _triggerHaptic() {
+    if (_isSoundEnabled) {
+      HapticFeedback.lightImpact();
+    }
   }
 
   // Function to open Email
@@ -226,6 +233,7 @@ void _showDurationInfo() {
                 activeThumbColor: Colors.blue, 
                 value: _isStrictMode,
                 onChanged: (val) {
+                  _triggerHaptic();
                   setState(() {
                     _isStrictMode = val;
                     _settingsBox.put('isStrictMode', val);
@@ -241,6 +249,7 @@ void _showDurationInfo() {
                 activeThumbColor: Colors.blue,
                 value: _autoFlow,
                 onChanged: (val) {
+                  _triggerHaptic();
                   setState(() {
                     _autoFlow = val;
                     _settingsBox.put('autoFlow', val);
@@ -265,6 +274,7 @@ void _showDurationInfo() {
                 activeThumbColor: Colors.blue,
                 value: _isDarkMode,
                 onChanged: (val) {
+                  _triggerHaptic();
                   setState(() {
                     _isDarkMode = val;
                     _settingsBox.put('isDarkMode', val);
@@ -279,6 +289,7 @@ void _showDurationInfo() {
                 activeThumbColor: Colors.blue,
                 value: _isSoundEnabled,
                 onChanged: (val) {
+                  _triggerHaptic();
                   setState(() {
                     _isSoundEnabled = val;
                     _settingsBox.put('isSoundEnabled', val);
@@ -295,6 +306,7 @@ void _showDurationInfo() {
                 activeThumbColor: Colors.blue,
                 value: _whiteNoise,
                 onChanged: (val) {
+                  _triggerHaptic();
                   setState(() {
                     _whiteNoise = val;
                     _settingsBox.put('whiteNoise', val);
