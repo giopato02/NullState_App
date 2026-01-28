@@ -6,6 +6,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:nullstate/services/notification_service.dart';
+import 'package:nullstate/models/session.dart';
 
 class FocusPage extends StatefulWidget {
   const FocusPage({super.key});
@@ -277,8 +278,28 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     });
   }
 
+  // 💾 SAVES DATA TO HIVE
+  void _saveSessionToDatabase() {
+    final sessionBox = Hive.box<Session>('session_box');
+
+    // Calculate minutes from the TOTAL duration set at the start
+    int minutesSaved = (totalSeconds / 60).round();
+
+    // Safety check
+    if (minutesSaved <= 0) return;
+
+    sessionBox.add(Session(
+      date: DateTime.now(),
+      durationMinutes: minutesSaved,
+      isBreak: isBreakMode,
+    ));
+
+    print("✅ Session Saved: $minutesSaved min (${isBreakMode ? 'Break' : 'Focus'})");
+  }
+
   // Called when timer hits 0 naturally
   void _finishTimer() async {
+    _saveSessionToDatabase();
     _triggerHaptic(success: true);
     stopTimer(cancelNotify: false);
 
