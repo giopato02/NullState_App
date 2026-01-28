@@ -327,6 +327,7 @@ void _showDurationInfo() {
                 subtitle: const Text("Buy me a coffee", style: TextStyle(color: Colors.grey)),
                 onTap: _launchSupportUrl,
               ),
+              const SizedBox(height: 50),
             ],
           ),
         );

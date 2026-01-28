@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'dart:async';
 import 'dart:math';
+import 'dart:io';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:nullstate/services/notification_service.dart';
 import 'package:nullstate/models/session.dart';
+import 'package:flutter_background/flutter_background.dart';
 
 class FocusPage extends StatefulWidget {
   const FocusPage({super.key});
@@ -35,8 +37,6 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
   Timer? _quoteTimer;
   String _currentQuote = "Relax & Recharge";
   int _lastQuoteIndex = -1;
-
-  final AudioPlayer _audioPlayer = AudioPlayer();
   final AudioPlayer _sfxPlayer = AudioPlayer();
   final AudioPlayer _bgmPlayer = AudioPlayer();
   final List<String> _breakQuotes = [
@@ -89,6 +89,23 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    AudioPlayer.global.setAudioContext(
+      AudioContext(
+        android: AudioContextAndroid(
+          isSpeakerphoneOn: false,
+          stayAwake: true, // CRITICAL: Keeps timer ticking on Android
+          contentType: AndroidContentType.music,
+          usageType: AndroidUsageType.media,
+          audioFocus: AndroidAudioFocus.gain,
+        ),
+        iOS: AudioContextIOS(
+          category: AVAudioSessionCategory
+              .playback, // Plays in silent mode/background
+          options: {AVAudioSessionOptions.mixWithOthers},
+        ),
+      ),
+    );
     _loadSettings();
 
     // Listen for changes in Settings
@@ -117,7 +134,6 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     WakelockPlus.disable();
     timer?.cancel();
     _quoteTimer?.cancel();
-    _audioPlayer.dispose();
     _sfxPlayer.dispose();
     _bgmPlayer.dispose();
     super.dispose();
@@ -182,12 +198,14 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     final settingsBox = Hive.box('settings_box');
     bool whiteNoiseEnabled = settingsBox.get('whiteNoise', defaultValue: false);
 
-    if (play && whiteNoiseEnabled) {
-      // Loop the white noise forever
+    // If we are asked to play, AND settings allow it, AND we are actually running
+    if (play && whiteNoiseEnabled && isRunning) {
       await _bgmPlayer.setReleaseMode(ReleaseMode.loop);
-      await _bgmPlayer.play(AssetSource('sounds/white_noise.mp3'));
+      // Only play if not already playing to avoid stutter
+      if (_bgmPlayer.state != PlayerState.playing) {
+        await _bgmPlayer.play(AssetSource('sounds/white_noise.mp3'));
+      }
     } else {
-      // Stop immediately
       await _bgmPlayer.stop();
     }
   }
@@ -207,16 +225,36 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     });
   }
 
-  void startTimer() {
+  void startTimer() async {
     _triggerHaptic();
+    if (Platform.isAndroid && !isBreakMode) {
+      try {
+        final androidConfig = FlutterBackgroundAndroidConfig(
+          notificationTitle: "NullState Focus",
+          notificationText: "Timer is running in the background",
+          notificationImportance: AndroidNotificationImportance.normal,
+          notificationIcon: AndroidResource(name: 'ic_launcher', defType: 'mipmap'), 
+        );
+        
+        // Initialize & Enable (Wait for it!)
+        bool success = await FlutterBackground.initialize(androidConfig: androidConfig);
+        if (success) {
+          await FlutterBackground.enableBackgroundExecution();
+          print("✅ Android Background Service Started");
+        }
+      } catch (e) {
+        print("⚠️ Background Service Error: $e");
+      }
+    }
     final settingsBox = Hive.box('settings_box');
     bool isStrict = settingsBox.get('isStrictMode', defaultValue: false);
 
     setState(() {
       isRunning = true;
-      _manageWhiteNoise(play: true);
       isPaused = false;
     });
+
+    _manageWhiteNoise(play: true);
 
     final now = DateTime.now();
     DateTime targetTime;
@@ -232,15 +270,15 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
       _endTime = targetTime;
     }
 
-    String formattedTime = "${targetTime.hour}:${targetTime.minute.toString().padLeft(2, '0')}";
+    //String formattedTime = "${targetTime.hour}:${targetTime.minute.toString().padLeft(2, '0')}";
 
     // Schedule the finish notification
     NotificationService().scheduleNotification(
       id: 0,
       title: isBreakMode ? "Break Over!" : "Focus Complete!",
-      body: isBreakMode 
-          ? "Ready to focus again?" 
-          : "Focusing until $formattedTime. Keep it up!", 
+      body: isBreakMode
+          ? "Ready to focus again?"
+          : "Focus Session Over! Take a Break!",
       seconds: remainingSeconds,
     );
 
@@ -257,11 +295,6 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
 
-      // Don't update UI if app is in background
-      if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
-         return; 
-      }
-
       setState(() {
         final now = DateTime.now();
         remainingSeconds = (_endTime!.difference(now).inMilliseconds / 1000)
@@ -274,7 +307,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     });
   }
 
-  void pauseTimer() {
+  void pauseTimer() async{
     _triggerHaptic();
     timer?.cancel();
     _quoteTimer?.cancel();
@@ -282,15 +315,25 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     WakelockPlus.disable();
     // Cancel notification
     NotificationService().cancelNotification(888);
+    if (Platform.isAndroid) {
+      try {
+        await FlutterBackground.disableBackgroundExecution();
+      } catch (e) { print(e); }
+    }
     setState(() {
       isRunning = false;
-      _manageWhiteNoise(play: false);
       isPaused = true;
     });
+    _manageWhiteNoise(play: false);
   }
 
-  void stopTimer({bool cancelNotify = true}) {
+  void stopTimer({bool cancelNotify = true}) async{
     _triggerHaptic(heavy: true);
+    if (Platform.isAndroid) {
+      try {
+        await FlutterBackground.disableBackgroundExecution();
+      } catch (e) { print(e); }
+    }
     timer?.cancel();
     _quoteTimer?.cancel();
     // Disable wakelock
@@ -301,11 +344,11 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     }
     setState(() {
       isRunning = false;
-      _manageWhiteNoise(play: false);
       isPaused = false;
       remainingSeconds = 0;
       _endTime = null;
     });
+    _manageWhiteNoise(play: false);
   }
 
   // SAVES DATA TO HIVE
@@ -318,35 +361,35 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
     // Safety check
     if (minutesSaved <= 0) return;
 
-    sessionBox.add(Session(
-      date: DateTime.now(),
-      durationMinutes: minutesSaved,
-      isBreak: isBreakMode,
-    ));
+    sessionBox.add(
+      Session(
+        date: DateTime.now(),
+        durationMinutes: minutesSaved,
+        isBreak: isBreakMode,
+      ),
+    );
 
-    print("✅ Session Saved: $minutesSaved min (${isBreakMode ? 'Break' : 'Focus'})");
+    print(
+      "✅ Session Saved: $minutesSaved min (${isBreakMode ? 'Break' : 'Focus'})",
+    );
   }
 
   // Called when timer hits 0 naturally
   void _finishTimer() async {
+    if (Platform.isAndroid) {
+      try {
+        await FlutterBackground.disableBackgroundExecution();
+      } catch (e) { print(e); }
+    }
+
     _saveSessionToDatabase();
     _triggerHaptic(success: true);
     _playCompletionSound();
     _manageWhiteNoise(play: false);
     stopTimer(cancelNotify: false);
 
-    final settingsBox = Hive.box('settings_box');
-    // bool isSoundEnabled = settingsBox.get('isSoundEnabled', defaultValue: true);
-
-    // if (isSoundEnabled) {
-    //   try {
-    //     await _audioPlayer.play(AssetSource('sounds/ding.mp3')); 
-    //   } catch (e) {
-    //     debugPrint("Error playing sound: $e");
-    //   }
-    // }
-
     // CHECK FRICTIONLESS FLOW
+    final settingsBox = Hive.box('settings_box');
     bool autoFlow = settingsBox.get('autoFlow', defaultValue: false);
     if (autoFlow) {
       // 1. Determine the target mode (If currently Focus, go Break. If Break, go Focus)
@@ -375,13 +418,14 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
           NotificationService().showInstantNotification(
             id: 1, // Different ID so it doesn't override the timer
             title: "⚠️ FOCUS SESSION FAILED",
-            body: "You left the app. Session was cancelled.",
+            body:
+                "You left the app. Session was cancelled and will not be counted towards your Stats.",
           );
-          
+
           // Fail the session
           stopTimer(cancelNotify: true);
           _wasStrictlyInterrupted = true;
-        } 
+        }
       }
     }
 
@@ -395,28 +439,36 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
         Color textColor = isDarkMode ? Colors.white : Colors.black;
 
         showDialog(
-           // dialog code 
-           context: context,
-           builder: (context) => AlertDialog(
-             backgroundColor: bgColor,
-             title: Text("Focus Broken 😔", style: TextStyle(color: textColor)),
-             content: Text(
-               "Strict Mode is active. You left the app, so the timer was reset to keep you accountable.",
-               style: TextStyle(color: textColor),
-             ),
-             actions: [
-               TextButton(
-                 onPressed: () => Navigator.pop(context),
-                 child: const Text("I understand"),
-               ),
-             ],
-           ),
+          // dialog code
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: bgColor,
+            title: Text("Focus Broken 😔", style: TextStyle(color: textColor)),
+            content: Text(
+              "Strict Mode is active. You left the app, so the timer was reset to keep you accountable.",
+              style: TextStyle(color: textColor),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("I understand"),
+              ),
+            ],
+          ),
         );
       } else if (isRunning && _endTime != null) {
-        // Sync timer visually
-        setState(() {
-          remainingSeconds = _endTime!.difference(DateTime.now()).inSeconds;
-        });
+        final now = DateTime.now();
+        // Did the timer finish while we were sleeping?
+        if (now.isAfter(_endTime!)) {
+          // if yes, Trigger the finish logic immediately.
+          // This will Stop the Noise, Play the Ding, and Save Data.
+          _finishTimer();
+        } else {
+          // if no, still time left. Sync the UI.
+          setState(() {
+            remainingSeconds = _endTime!.difference(now).inSeconds;
+          });
+        }
       }
     }
   }
