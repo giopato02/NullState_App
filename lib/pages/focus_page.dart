@@ -495,7 +495,7 @@ class _FocusPageState extends State<FocusPage> with WidgetsBindingObserver {
           end: Alignment.bottomCenter,
           colors: isDarkMode 
               ? [const Color(0xFF145A32), const Color(0xFF0B1E15)] // Dark Forest
-              : [Colors.green[200]!, Colors.green[50]!], // Soft Mint
+              : [Colors.green[400]!, Colors.green[50]!], // Soft Mint
         );
 
         // 2. Define the Transparent Gradient (Focus Mode)
