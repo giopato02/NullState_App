@@ -62,7 +62,7 @@ NullState is a cross-platform mobile application designed to help users achieve 
 
 | Focus Timer | Statistics | Journal | Settings |
 |:---:|:---:|:---:|:---:|
-| <img src="https://github.com/user-attachments/assets/6f2576fa-50af-45b3-a288-5f433f574fd8" width="250" /> | <img src="https://github.com/user-attachments/assets/5bf683c6-b446-49dd-beb8-a90fe6e3fb41" width="250" /> | <img src="https://github.com/user-attachments/assets/5fdc458b-a919-42ba-a0b1-5b82c3f725e9" width="250" /> |
+| <img src="assets/Screenshots/FocusPage.png" width="250" /> | <img src="assets/Screenshots/StatsPage.png" width="250" /> | <img src="assets/Screenshots/JournalPage.png" width="250" /> | <img src="assets/Screenshots/SettingsPage.png" width="250" /> |
 
 ---
 
