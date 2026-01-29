@@ -42,7 +42,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _launchEmail() async {
     final Uri emailLaunchUri = Uri(
       scheme: 'mailto',
-      path: 'nullstate.co@gmail.com', // CHANGE LATER
+      path: 'nulldevelopment.co@gmail.com',
       query: 'subject=NullState Feedback', 
     );
 
@@ -119,8 +119,7 @@ void _showDurationInfo() {
 
   // Function to open Browser
   Future<void> _launchSupportUrl() async {
-    // Replace with the actual link (Ko-fi, Patreon...)
-    final Uri url = Uri.parse('https://www.buymeacoffee.com'); 
+    final Uri url = Uri.parse('buymeacoffee.com/nulldevelopment'); 
     
     try {
       await launchUrl(url, mode: LaunchMode.externalApplication);
