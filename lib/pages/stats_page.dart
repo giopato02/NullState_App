@@ -15,7 +15,7 @@ class StatsPage extends StatefulWidget {
 class _StatsPageState extends State<StatsPage> {
   // Chart Colors
    final Color focusColor = const Color.fromARGB(255, 23, 101, 235);
-   final Color breakColor = const Color.fromARGB(255, 76, 175, 80);
+   final Color breakColor = const Color.fromARGB(255, 88, 190, 91);
   //final Color focusColor = const Color(0xFF448AFF);
   //final Color breakColor = const Color(0xFF69F0AE);
 
