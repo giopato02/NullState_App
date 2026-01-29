@@ -14,8 +14,10 @@ class StatsPage extends StatefulWidget {
 
 class _StatsPageState extends State<StatsPage> {
   // Chart Colors
-  final Color focusColor = const Color.fromARGB(255, 0, 84, 228);
-  final Color breakColor = const Color.fromARGB(255, 60, 220, 68);
+  // final Color focusColor = const Color.fromARGB(255, 0, 84, 228);
+  // final Color breakColor = const Color.fromARGB(255, 60, 220, 68);
+  final Color focusColor = const Color(0xFF448AFF);
+  final Color breakColor = const Color(0xFF69F0AE);
 
   // Tracks which week the user is currently viewing
   DateTime _selectedDate = DateTime.now();
@@ -45,6 +47,8 @@ class _StatsPageState extends State<StatsPage> {
         final weekRange = _getWeekRange(
           _selectedDate,
         ); // Gets for example: Jan 1 - Jan 7
+
+        int dailyAverage = (totalFocus / 7).round();
 
         return Scaffold(
           backgroundColor:
@@ -94,15 +98,17 @@ class _StatsPageState extends State<StatsPage> {
                 Row(
                   children: [
                     _buildSummaryCard(
-                      "Total Focus Time",
+                      "Focus Time",
                       totalFocus,
                       focusColor,
+                      Icons.timer,
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 15),
                     _buildSummaryCard(
-                      "Total Break Time",
+                      "Break Time",
                       totalBreak,
                       breakColor,
+                      Icons.coffee_rounded,
                     ),
                   ],
                 ),
@@ -224,7 +230,7 @@ class _StatsPageState extends State<StatsPage> {
                           leftTitles: AxisTitles(
                             sideTitles: SideTitles(
                               showTitles: true,
-                              reservedSize: 55, 
+                              reservedSize: 55,
                               interval: 30,
                               getTitlesWidget: (value, meta) {
                                 if (value == 0) return const SizedBox();
@@ -315,43 +321,61 @@ class _StatsPageState extends State<StatsPage> {
                 // 5. DAILY AVERAGE (Footer)
                 Center(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.1),
+                      // Dark glass background to ensure text pops against any background
+                      color: Colors.black.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(30),
                       border: Border.all(
                         color: Colors.white.withValues(alpha: 0.1),
+                        width: 1,
                       ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min, // Shrink to fit text
                       children: [
-                        const Icon(
-                          Icons.show_chart,
-                          color: Colors.white70,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
                         Text(
-                          "Daily Average:  ${(totalFocus / 7).round()}m",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
+                          "DAILY AVERAGE",
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 12,
+                            letterSpacing: 1.5,
+                            fontWeight: FontWeight.w600,
                           ),
+                        ),
+                        const SizedBox(height: 5),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              "$dailyAverage", 
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 30,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const Text(
+                              " min",
+                              style: TextStyle(
+                                color: Colors.white70, 
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
                 ),
 
-                // Push everything slightly up from the very bottom edge
-                const SizedBox(height: 40),
-                const Spacer(),
-              ],
+                const SizedBox(height: 110),
+              ], // End of Column children
             ),
           ),
         );
@@ -373,10 +397,7 @@ class _StatsPageState extends State<StatsPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: bgColor,
-        title: Text(
-          "Tracking Rules",
-          style: TextStyle(color: textColor),
-        ),
+        title: Text("Tracking Rules", style: TextStyle(color: textColor)),
         content: Text(
           "1. Only FULLY COMPLETED sessions are recorded.\n"
           "2. If you stop a timer early, it will NOT count towards your stats.\n"
@@ -402,29 +423,43 @@ class _StatsPageState extends State<StatsPage> {
   }
 
   // Builds the small cards at the top
-  Widget _buildSummaryCard(String title, int totalMinutes, Color color) {
+  Widget _buildSummaryCard(
+    String title,
+    int totalMinutes,
+    Color color,
+    IconData icon,
+  ) {
     final hours = totalMinutes ~/ 60;
     final minutes = totalMinutes % 60;
     final timeString = hours > 0 ? "${hours}h ${minutes}m" : "${minutes}m";
 
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
         decoration: BoxDecoration(
           color: Colors.black.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.5), width: 1.5),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: TextStyle(color: Colors.white70, fontSize: 12)),
-            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(icon, color: color.withValues(alpha: 0.8), size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             Text(
               timeString,
-              style: TextStyle(
-                color: color,
-                fontSize: 22,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -448,7 +483,7 @@ class _StatsPageState extends State<StatsPage> {
             toY: total == 0
                 ? 1
                 : total, // Min height of 1 so you can see empty days
-            width: 16,
+            width: 15,
             color: Colors.transparent, // The background of the bar is invisible
             rodStackItems: [
               // The Blue Part (Focus)
@@ -456,7 +491,12 @@ class _StatsPageState extends State<StatsPage> {
               // The Green Part (Break) - stacks on top of Focus
               BarChartRodStackItem(focus, focus + breakTime, breakColor),
             ],
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(6),
+            backDrawRodData: BackgroundBarChartRodData(
+              show: true,
+              toY: _getMaxY(data),
+              color: Colors.white.withValues(alpha: 0.03),
+            ),
           ),
         ],
       );
