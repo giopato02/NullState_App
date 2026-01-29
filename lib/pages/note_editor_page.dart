@@ -109,7 +109,7 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
           end: Alignment.bottomCenter,
           colors: isDarkMode
               ? [const Color(0xFF0F2027), const Color(0xFF203A43)]
-              : [Colors.blue[300]!, Colors.blue[100]!],
+              : [Colors.blue[500]!, Colors.blue[100]!],
         );
 
         Color bodyColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;

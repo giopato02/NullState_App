@@ -54,8 +54,7 @@ class _HomePageState extends State<HomePage> {
               forceMaterialTransparency: true,
               // 2. POLISH: Only show Settings on the Focus Page (Index 0)
               // This prevents it from cluttering the Stats/Journal headers
-              actions: currentPage == 0 
-                ? [
+              actions: [
                     Padding(
                       padding: const EdgeInsets.only(right: 20.0),
                       child: IconButton(
@@ -70,8 +69,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                   ]
-                : [], // Hide on other pages
-            ),
+              ),
 
             body: IndexedStack(
               index: currentPage,
