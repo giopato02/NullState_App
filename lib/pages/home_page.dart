@@ -36,7 +36,7 @@ class _HomePageState extends State<HomePage> {
           end: Alignment.bottomCenter,
           colors: isDarkMode 
               ? [const Color(0xFF0F2027), const Color(0xFF203A43), const Color(0xFF2C5364)] // "Moonlit Asteroid"
-              : [Colors.blue[200]!, Colors.blue[50]!], // Soft Cloud
+              : [Colors.blue[400]!, Colors.blue[50]!], // Soft Cloud
         );
 
         return Container(
