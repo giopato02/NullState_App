@@ -399,7 +399,7 @@ class _StatsPageState extends State<StatsPage> {
         backgroundColor: bgColor,
         title: Text("Tracking Rules", style: TextStyle(color: textColor)),
         content: Text(
-          "1. Only FULLY COMPLETED sessions are recorded.\n"
+          "1. Only fully completed sessions are recorded.\n"
           "2. If you stop a timer early, it will NOT count towards your stats.\n"
           "3. Strict Mode failures are not recorded.",
           style: TextStyle(color: textColor.withValues(alpha: 0.8)),
