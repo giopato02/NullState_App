@@ -14,10 +14,10 @@ class StatsPage extends StatefulWidget {
 
 class _StatsPageState extends State<StatsPage> {
   // Chart Colors
-  // final Color focusColor = const Color.fromARGB(255, 0, 84, 228);
-  // final Color breakColor = const Color.fromARGB(255, 60, 220, 68);
-  final Color focusColor = const Color(0xFF448AFF);
-  final Color breakColor = const Color(0xFF69F0AE);
+   final Color focusColor = const Color.fromARGB(255, 23, 101, 235);
+   final Color breakColor = const Color.fromARGB(255, 76, 175, 80);
+  //final Color focusColor = const Color(0xFF448AFF);
+  //final Color breakColor = const Color(0xFF69F0AE);
 
   // Tracks which week the user is currently viewing
   DateTime _selectedDate = DateTime.now();
