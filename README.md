@@ -35,7 +35,7 @@ NullState is a cross-platform mobile application designed to help users achieve 
     * Responsive layout that adapts to screen size using `MediaQuery`.
     * Modal Bottom Sheet for seamless data entry.
 
-### ⚙️ Customizable Settings
+### Customizable Settings
 * **Personalized Timer:** Set your preferred default duration (5-120 min) so the timer is always ready for your specific workflow.
 * **Frictionless Flow:** Toggle auto-switch logic to immediately transition into a Break when a Focus session ends.
 * **Sensory Control:** Granular toggles for **Sound**, **Haptics**, and **White Noise** to tailor the sensory experience.
@@ -46,7 +46,7 @@ NullState is a cross-platform mobile application designed to help users achieve 
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 
 * **Framework:** Flutter
 * **Language:** Dart
