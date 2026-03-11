@@ -1,4 +1,4 @@
-package com.nullstate.nullstate
+package app.nulldevelopment.nullstate
 
 import io.flutter.embedding.android.FlutterActivity
 

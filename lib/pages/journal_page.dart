@@ -190,7 +190,43 @@ class _JournalPageState extends State<JournalPage> {
                     builder: (context, Box<Note> box, _) {
                       List<Note> notes = box.values.toList().cast<Note>();
                       notes.sort((a, b) => b.date.compareTo(a.date));
-        
+                      if (notes.isEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 80.0), // Pushes it down a bit
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.sticky_note_2_outlined,
+                                  size: 80,
+                                  color: Colors.white.withValues(alpha: 0.5),
+                                ),
+                                const SizedBox(height: 20),
+                                Text(
+                                  "Nothing here yet.",
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  "Tap the + button below to capture\nyour first idea.",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.white,
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
                       // We must return a single widget (Column) that holds both parts
                       return Column(
                         children: [

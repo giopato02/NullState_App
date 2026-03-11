@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.nullstate.nullstate"
+    namespace = "app.nulldevelopment.nullstate"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -22,8 +22,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.nullstate.nullstate"
+        applicationId = "app.nulldevelopment.nullstate"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -32,12 +31,19 @@ android {
         versionName = flutter.versionName
     }
 
-    buildTypes {
-        release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+    signingConfigs {
+        create("release") {
+            keyAlias = "upload"
+            keyPassword = "S5T26Igi6kejgqG"
+            storeFile = file("upload-keystore.jks")
+            storePassword = "S5T26Igi6kejgqG"
         }
+    }
+
+    buildTypes {
+        getByName("release") {
+            signingConfig = signingConfigs.getByName("release")
+            proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")        }
     }
 }
 

@@ -43,7 +43,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final Uri emailLaunchUri = Uri(
       scheme: 'mailto',
       path: 'nulldevelopment.co@gmail.com',
-      query: 'subject=NullState Feedback', 
+      query: 'subject=NullState Feedback',
     );
 
     try {
@@ -52,8 +52,9 @@ class _SettingsPageState extends State<SettingsPage> {
       debugPrint("Could not launch email: $e");
     }
   }
-// Function to show the info for Default Duration
-void _showDurationInfo() {
+
+  // Function to show the info for Default Duration
+  void _showDurationInfo() {
     // Check for dark mode
     bool isDarkMode = _settingsBox.get('isDarkMode', defaultValue: false);
     Color bgColor = isDarkMode ? Colors.grey[900]! : Colors.white;
@@ -73,13 +74,25 @@ void _showDurationInfo() {
               style: TextStyle(fontStyle: FontStyle.normal, color: Colors.grey),
             ),
             const SizedBox(height: 20),
-            Text("Recommended Intervals:", style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+            Text(
+              "Recommended Intervals:",
+              style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+            ),
             const SizedBox(height: 10),
-            Text("• 25 min: Pomodoro Technique", style: TextStyle(color: textColor)),
+            Text(
+              "• 25 min: Pomodoro Technique",
+              style: TextStyle(color: textColor),
+            ),
             const SizedBox(height: 5),
-            Text("• 60 min: Standard Session", style: TextStyle(color: textColor)),
+            Text(
+              "• 60 min: Standard Session",
+              style: TextStyle(color: textColor),
+            ),
             const SizedBox(height: 5),
-            Text("• 90 min: Ultradian Rhythm", style: TextStyle(color: textColor)),
+            Text(
+              "• 90 min: Ultradian Rhythm",
+              style: TextStyle(color: textColor),
+            ),
           ],
         ),
         actions: [
@@ -91,7 +104,8 @@ void _showDurationInfo() {
       ),
     );
   }
-// Function to show the info for Strict Mode
+
+  // Function to show the info for Strict Mode
   void _showStrictModeInfo() {
     bool isDarkMode = _settingsBox.get('isDarkMode', defaultValue: false);
     Color bgColor = isDarkMode ? Colors.grey[900]! : Colors.white;
@@ -119,8 +133,8 @@ void _showDurationInfo() {
 
   // Function to open Browser
   Future<void> _launchSupportUrl() async {
-    final Uri url = Uri.parse('buymeacoffee.com/nulldevelopment'); 
-    
+    final Uri url = Uri.parse('https://buymeacoffee.com/nulldevelopment');
+
     try {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } catch (e) {
@@ -135,22 +149,40 @@ void _showDurationInfo() {
       valueListenable: _settingsBox.listenable(),
       builder: (context, Box box, _) {
         bool isDarkMode = box.get('isDarkMode', defaultValue: false);
-        
+
+        final Gradient backgroundGradient = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: isDarkMode 
+              ? [const Color(0xFF0F2027), const Color(0xFF203A43), const Color(0xFF2C5364)]
+              : [Colors.blue[500]!, Colors.blue[500]!, Colors.blue[200]!], // We use deeper top blue for contrast, and mid-blue at bottom instead of near-white.
+          stops: isDarkMode ? null : const [0.0, 0.3, 1.0], // Controls ratio: solid deep blue at top where text is, then transitions down.
+        );
+
         // Dynamic Colors based on Dark Mode
-        Color bgColor = isDarkMode ? const Color(0xFF121212) : Colors.white;
-        Color textColor = isDarkMode ? Colors.white : Colors.black;
-        Color headerColor = isDarkMode ? Colors.blueAccent : Colors.blue;
+        Color bgColor = isDarkMode
+            ? const Color(0xFF121212)
+            : Colors.white; // Brings back the solid background
+        Color textColor = isDarkMode ? Colors.white : Colors.black87;
+        Color headerColor = isDarkMode ? Colors.blueAccent : Colors.blue[800]!;
         Color iconColor = isDarkMode ? Colors.white70 : Colors.black54;
-        Color dividerColor = isDarkMode ? Colors.grey[800]! : Colors.grey[300]!;
+        Color dividerColor = isDarkMode ? Colors.white24 : Colors.black12;
 
         return Scaffold(
-          backgroundColor: bgColor,
+          backgroundColor: bgColor, // Applies the white (or dark) background
           appBar: AppBar(
             title: const Text(
-              "Settings", 
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+              "Settings",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            backgroundColor: isDarkMode ? Colors.grey[900] : Colors.blue[200],
+            // This paints the gradient ONLY inside the AppBar
+            flexibleSpace: Container(
+              decoration: BoxDecoration(gradient: backgroundGradient),
+            ),
+            backgroundColor: Colors.transparent,
             elevation: 0,
             iconTheme: const IconThemeData(color: Colors.white),
             toolbarHeight: 80.0,
@@ -162,7 +194,10 @@ void _showDurationInfo() {
               Text(
                 "Focus",
                 style: TextStyle(
-                    fontSize: 20, fontWeight: FontWeight.bold, color: headerColor),
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: headerColor,
+                ),
               ),
               const SizedBox(height: 10),
 
@@ -171,7 +206,10 @@ void _showDurationInfo() {
                 // CHANGED: Title is now a Row with Text + Info Icon
                 title: Row(
                   children: [
-                    Text("Default Duration", style: TextStyle(color: textColor)),
+                    Text(
+                      "Default Duration",
+                      style: TextStyle(color: textColor),
+                    ),
                     const SizedBox(width: 8), // Small gap
                     InkWell(
                       onTap: _showDurationInfo, // Call our new function
@@ -179,15 +217,18 @@ void _showDurationInfo() {
                       child: const Padding(
                         padding: EdgeInsets.all(4.0), // Hitbox padding
                         child: Icon(
-                          Icons.info_outline, 
-                          size: 20, 
+                          Icons.info_outline,
+                          size: 20,
                           color: Colors.grey,
                         ),
                       ),
                     ),
                   ],
                 ),
-                subtitle: Text("${_focusDuration.toInt()} minutes", style: const TextStyle(color: Colors.grey)),
+                subtitle: Text(
+                  "${_focusDuration.toInt()} minutes",
+                  style: const TextStyle(color: Colors.grey),
+                ),
                 trailing: Icon(Icons.timer, color: iconColor),
               ),
               Slider(
@@ -219,17 +260,20 @@ void _showDurationInfo() {
                       child: const Padding(
                         padding: EdgeInsets.all(4.0),
                         child: Icon(
-                          Icons.info_outline, 
-                          size: 20, 
+                          Icons.info_outline,
+                          size: 20,
                           color: Colors.grey,
                         ),
                       ),
                     ),
                   ],
                 ),
-                subtitle: const Text("Keep me accountable", style: TextStyle(color: Colors.grey)),
+                subtitle: const Text(
+                  "Keep me accountable",
+                  style: TextStyle(color: Colors.grey),
+                ),
                 secondary: Icon(Icons.lock_outline, color: iconColor),
-                activeThumbColor: Colors.blue, 
+                activeThumbColor: Colors.blue,
                 value: _isStrictMode,
                 onChanged: (val) {
                   _triggerHaptic();
@@ -242,8 +286,14 @@ void _showDurationInfo() {
 
               // Setting 3. Frictionless Flow (Auto Switch)
               SwitchListTile(
-                title: Text("Frictionless Flow", style: TextStyle(color: textColor)),
-                subtitle: const Text("Auto-switch to Break when Focus ends", style: TextStyle(color: Colors.grey)),
+                title: Text(
+                  "Frictionless Flow",
+                  style: TextStyle(color: textColor),
+                ),
+                subtitle: const Text(
+                  "Auto-switch to Break when Focus ends",
+                  style: TextStyle(color: Colors.grey),
+                ),
                 secondary: Icon(Icons.autorenew, color: iconColor),
                 activeThumbColor: Colors.blue,
                 value: _autoFlow,
@@ -262,7 +312,10 @@ void _showDurationInfo() {
               Text(
                 "App",
                 style: TextStyle(
-                    fontSize: 20, fontWeight: FontWeight.bold, color: headerColor),
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: headerColor,
+                ),
               ),
               const SizedBox(height: 10),
 
@@ -283,7 +336,10 @@ void _showDurationInfo() {
 
               // Setting 5: Sound & Haptics
               SwitchListTile(
-                title: Text("Sound & Haptics", style: TextStyle(color: textColor)),
+                title: Text(
+                  "Sound & Haptics",
+                  style: TextStyle(color: textColor),
+                ),
                 secondary: Icon(Icons.volume_up_outlined, color: iconColor),
                 activeThumbColor: Colors.blue,
                 value: _isSoundEnabled,
@@ -298,8 +354,9 @@ void _showDurationInfo() {
               // Setting 6: White Noise
               SwitchListTile(
                 title: Text("White Noise", style: TextStyle(color: textColor)),
-                  subtitle: const Text("Play background static while focusing", 
-                  style: TextStyle(color: Colors.grey)
+                subtitle: const Text(
+                  "Play background static while focusing",
+                  style: TextStyle(color: Colors.grey),
                 ),
                 secondary: Icon(Icons.waves, color: iconColor),
                 activeThumbColor: Colors.blue,
@@ -319,7 +376,10 @@ void _showDurationInfo() {
               Text(
                 "Support",
                 style: TextStyle(
-                    fontSize: 20, fontWeight: FontWeight.bold, color: headerColor),
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: headerColor,
+                ),
               ),
               const SizedBox(height: 10),
 
@@ -327,22 +387,31 @@ void _showDurationInfo() {
               ListTile(
                 leading: Icon(Icons.mail_outline, color: iconColor),
                 title: Text("Get in Touch", style: TextStyle(color: textColor)),
-                subtitle: const Text("Send feedback or report bugs", style: TextStyle(color: Colors.grey)),
+                subtitle: const Text(
+                  "Send feedback or report bugs",
+                  style: TextStyle(color: Colors.grey),
+                ),
                 onTap: _launchEmail,
               ),
 
               // Setting 8: Donation
               ListTile(
                 leading: Icon(Icons.coffee_outlined, color: iconColor),
-                title: Text("Support Development", style: TextStyle(color: textColor)),
-                subtitle: const Text("Buy me a coffee", style: TextStyle(color: Colors.grey)),
+                title: Text(
+                  "Support Development",
+                  style: TextStyle(color: textColor),
+                ),
+                subtitle: const Text(
+                  "Buy me a coffee",
+                  style: TextStyle(color: Colors.grey),
+                ),
                 onTap: _launchSupportUrl,
               ),
               const SizedBox(height: 50),
             ],
           ),
         );
-      }
+      },
     );
   }
 }

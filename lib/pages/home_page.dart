@@ -89,7 +89,7 @@ class _HomePageState extends State<HomePage> {
                 }),
               ),
               child: NavigationBar(
-                height: 70, // Slightly shorter for a sleeker look
+                height: 80, // Slightly shorter for a sleeker look
                 backgroundColor: isDarkMode 
                     ? const Color(0xFF1E1E1E).withValues(alpha: 0.85) // Slight transparency
                     : Colors.white.withValues(alpha: 0.85),
